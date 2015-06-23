@@ -1,0 +1,6 @@
+<!--
+  This view is used to render the installed plugins page.
+-->
+<div>
+This plugin creates test cases in Zephyr For Jira for the project unit tests.
+</div>
