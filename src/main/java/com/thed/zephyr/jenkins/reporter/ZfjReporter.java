@@ -45,7 +45,6 @@ import com.thed.zephyr.jenkins.model.TestCaseResultModel;
 import com.thed.zephyr.jenkins.model.ZephyrConfigModel;
 import com.thed.zephyr.jenkins.model.ZephyrInstance;
 import com.thed.zephyr.jenkins.utils.URLValidator;
-import com.thed.zephyr.jenkins.utils.ZephyrSoapClient;
 import com.thed.zephyr.jenkins.utils.rest.Cycle;
 import com.thed.zephyr.jenkins.utils.rest.Project;
 import com.thed.zephyr.jenkins.utils.rest.Release;
@@ -239,7 +238,6 @@ public class ZfjReporter extends Notifier {
 		}
             
             logger.print("Total Test Cases : " + zephyrTestCaseMap.size());
-            ZephyrSoapClient client = new ZephyrSoapClient();
         	List<TestCaseResultModel> testcases = new ArrayList<TestCaseResultModel>();
 
             
@@ -501,7 +499,7 @@ public class ZfjReporter extends Notifier {
 		 */
         @Override
         public String getDisplayName() {
-            return "Zephyr for JIRA Test Management";
+            return "Publish test result to Zephyr for JIRA";
         }
 
 		/**
