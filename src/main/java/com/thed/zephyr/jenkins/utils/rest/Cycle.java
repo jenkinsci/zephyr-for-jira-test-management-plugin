@@ -6,12 +6,18 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+
+import javax.xml.datatype.DatatypeConfigurationException;
+import javax.xml.datatype.DatatypeFactory;
+import javax.xml.datatype.XMLGregorianCalendar;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
@@ -162,7 +168,7 @@ public class Cycle {
 			
 		} else {
 			
-			cycles.put(0L, "No Cycle");
+//			cycles.put(0L, "No Cycle");
 			try {
 				throw new ClientProtocolException("Unexpected response status: "
 						+ statusCode);
@@ -216,15 +222,26 @@ public class Cycle {
 			String dateFormatForCycleCreation = sdf.format(date);
 
 			JSONObject jObject = new JSONObject();
-			String cycleName = "Cycle_" + dateFormatForCycleCreation;
+			String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;
 			
-			if(zephyrData.getCycleId() != NEW_CYCLE_KEY_IDENTIFIER) {
-				cycleName = zephyrData.getCycleName();
+			SimpleDateFormat sdf1 = new SimpleDateFormat("dd/MMM/yy");
+			String startDate = sdf1.format(date);
+			
+			GregorianCalendar gCal = new GregorianCalendar();
+
+			if (zephyrData.getCycleDuration().trim().equalsIgnoreCase("30 days")) {
+				gCal.add(Calendar.DAY_OF_MONTH, +29);
+			} else if (zephyrData.getCycleDuration().trim().equalsIgnoreCase("7 days")) {
+				gCal.add(Calendar.DAY_OF_MONTH, +6);
 			}
+
+			String endDate = sdf1.format(gCal.getTime());
 			
 			jObject.put("name", cycleName);
 			jObject.put("projectId", zephyrData.getZephyrProjectId());
 			jObject.put("versionId", zephyrData.getReleaseId());
+			jObject.put("startDate", startDate);
+			jObject.put("endDate", endDate);
 			
 			StringEntity se = new StringEntity(jObject.toString());
 			

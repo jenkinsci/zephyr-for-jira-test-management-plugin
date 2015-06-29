@@ -52,7 +52,7 @@ public class TestCaseUtil {
 	private static final String URL_ASSIGN_TESTS = "{SERVER}/rest/zapi/latest/execution/addTestsToCycle/";
 	private static final String URL_CREATE_EXECUTIONS_URL = "{SERVER}/rest/zapi/latest/execution";
 	private static final String URL_EXECUTE_TEST = "{SERVER}/rest/zapi/latest/execution/{id}/quickExecute";
-	private static final String JQL_SEARCH_TESTS = "jql=project = {pId} and issuetype = {issueTypeId}";
+	private static final String JQL_SEARCH_TESTS = "jql=project={pId}&issuetype={issueTypeId}";
 	
 	private static final String URL_GET_CYCLES = "{SERVER}/rest/zapi/latest/cycle";
 
@@ -102,14 +102,10 @@ public class TestCaseUtil {
 		String url = null;
 		
 		String searchJQL = JQL_SEARCH_TESTS;
-		searchJQL.replace("{pId}", zephyrData.getZephyrProjectId()+"");
-		searchJQL.replace("{issueTypeId}", zephyrData.getTestIssueTypeId()+"");
+		searchJQL = searchJQL.replace("{pId}", zephyrData.getZephyrProjectId()+"");
+		searchJQL = searchJQL.replace("{issueTypeId}", zephyrData.getTestIssueTypeId()+"");
 		
-		try {
-			url = URL_GET_ALL_TESTS.replace("{SERVER}", hostAddressWithProtocol) + "?" + URLEncoder.encode(searchJQL, "utf-8");
-		} catch (UnsupportedEncodingException e1) {
-			e1.printStackTrace();
-		}
+		url = URL_GET_ALL_TESTS.replace("{SERVER}", hostAddressWithProtocol) + "?" + searchJQL;
 		try {
 			response = client.execute(new HttpGet(url), context);
 		} catch (ClientProtocolException e) {

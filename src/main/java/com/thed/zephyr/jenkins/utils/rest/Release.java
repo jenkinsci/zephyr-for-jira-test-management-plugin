@@ -140,7 +140,6 @@ public class Release {
 			
 		} else {
 			
-			releases.put(0L, "No Release");
 			try {
 				throw new ClientProtocolException("Unexpected response status: "
 						+ statusCode);
@@ -148,7 +147,7 @@ public class Release {
 				e.printStackTrace();
 			}
 		}
-	
+		releases.put(-1L, "Unscheduled");
 		return releases;
 	}
 	
