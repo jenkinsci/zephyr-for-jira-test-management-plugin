@@ -3,17 +3,15 @@ package com.thed.zephyr.jenkins.model;
 import java.util.List;
 import java.util.Set;
 
+import com.thed.zephyr.jenkins.utils.rest.RestClient;
+
 public class ZephyrConfigModel {
 
 	private List<TestCaseResultModel> testcases;
 	private String zephyrURLString;
 	private Long zephyrProjectId = 1L;
-	private Long releaseId = 1L;
+	private Long versionId = 1L;
 	private Long cycleId = 1L;
-	private String userName = "test.manager";
-	private String password = "test.manager";
-	private String zephyrServerIPAddress = "127.0.0.1";
-	private int zephyrServerPort = 80;
 	private Set<String> packageNames;
 	private String cyclePrefix;
 	private boolean createPackage;
@@ -21,6 +19,8 @@ public class ZephyrConfigModel {
 	private long testIssueTypeId;
 	private String cycleName;
 	private String cycleDuration;
+	private RestClient restClient;
+
 
 	public long getTestIssueTypeId() {
 		return testIssueTypeId;
@@ -78,52 +78,12 @@ public class ZephyrConfigModel {
 		this.zephyrProjectId = zephyrProjectId;
 	}
 
-	public Long getReleaseId() {
-		return releaseId;
-	}
-
-	public void setReleaseId(Long releaseId) {
-		this.releaseId = releaseId;
-	}
-
 	public Long getCycleId() {
 		return cycleId;
 	}
 
 	public void setCycleId(Long cycleId) {
 		this.cycleId = cycleId;
-	}
-
-	public String getUserName() {
-		return userName;
-	}
-
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public String getZephyrServerIPAddress() {
-		return zephyrServerIPAddress;
-	}
-
-	public void setZephyrServerIPAddress(String zephyrServerIPAddress) {
-		this.zephyrServerIPAddress = zephyrServerIPAddress;
-	}
-
-	public int getZephyrServerPort() {
-		return zephyrServerPort;
-	}
-
-	public void setZephyrServerPort(int zephyrServerPort) {
-		this.zephyrServerPort = zephyrServerPort;
 	}
 
 	public Set<String> getPackageNames() {
@@ -148,6 +108,22 @@ public class ZephyrConfigModel {
 
 	public void setCycleName(String cycleName) {
 		this.cycleName = cycleName;
+	}
+
+	public RestClient getRestClient() {
+		return restClient;
+	}
+
+	public void setRestClient(RestClient restClient) {
+		this.restClient = restClient;
+	}
+
+	public Long getVersionId() {
+		return versionId;
+	}
+
+	public void setVersionId(Long versionId) {
+		this.versionId = versionId;
 	}
 
 }

@@ -2,9 +2,6 @@ package com.thed.zephyr.jenkins.utils.rest;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -14,25 +11,15 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -46,206 +33,109 @@ public class TestCaseUtil {
     public static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
 
 
-	private static final String URL_GET_TEST_CASE_DETAILS = "{SERVER}/flex/services/rest/latest/testcase";
 	private static final String URL_GET_ALL_TESTS = "{SERVER}/rest/api/2/search";
-	private static final String URL_CREATE_TESTS = "{SERVER}/rest/api/2/issue/";
+	private static final String URL_CREATE_TESTS = "{SERVER}/rest/api/2/issue/bulk";
 	private static final String URL_ASSIGN_TESTS = "{SERVER}/rest/zapi/latest/execution/addTestsToCycle/";
-	private static final String URL_CREATE_EXECUTIONS_URL = "{SERVER}/rest/zapi/latest/execution";
-	private static final String URL_EXECUTE_TEST = "{SERVER}/rest/zapi/latest/execution/{id}/quickExecute";
-	private static final String JQL_SEARCH_TESTS = "jql=project={pId}&issuetype={issueTypeId}";
+	private static final String URL_CREATE_EXECUTIONS_URL = "{SERVER}/rest/zapi/latest/execution?projectId={projectId}&versionId={versionId}&cycleId={cycleId}";
+	private static final String URL_EXECUTE_TEST = "{SERVER}/rest/zapi/latest/execution/updateBulkStatus";
+	private static final String JQL_SEARCH_TESTS = "jql=project={pId}&issuetype={issueTypeId}&maxResults=-1";
 	
 	private static final String URL_GET_CYCLES = "{SERVER}/rest/zapi/latest/cycle";
 
-	
-	private static HttpClientContext getClientContext(String hostAddressWithProtocol, String userName, String password) {
-		URL url;
-		HttpClientContext context = null;
-		try {
-			url = new URL(hostAddressWithProtocol);
-			HttpHost targetHost = new HttpHost(url.getHost(), url.getPort(), url.getProtocol());
-			CredentialsProvider credsProvider = new BasicCredentialsProvider();
-			credsProvider.setCredentials(AuthScope.ANY,
-					new UsernamePasswordCredentials(userName, password));
-			
-			AuthCache authCache = new BasicAuthCache();
-			authCache.put(targetHost, new BasicScheme());
-			
-			context = HttpClientContext.create();
-			context.setCredentialsProvider(credsProvider);
-			context.setAuthCache(authCache);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		}
-		
-		return context;
-	}
-	
-	
 	public static Map<Long, Map<String, Boolean>> getTestCaseDetails(ZephyrConfigModel zephyrData) {
 
+		JSONObject bulkIssues = new JSONObject();
+		JSONArray issueUpdates = new JSONArray();
 
 		Map<Long, Map<String, Boolean>> testCaseResultMap = new HashMap<Long, Map<String, Boolean>>();
-		String hostAddressWithProtocol = zephyrData.getZephyrURL();
-		HttpClientContext context = getClientContext(hostAddressWithProtocol, zephyrData.getUserName(), zephyrData.getPassword());
-		HttpClient client = HttpClientBuilder.create().build();
-		HttpResponse response = null;
 		List<TestCaseResultModel> testCases = zephyrData.getTestcases();
 		if (testCases == null || testCases.size() == 0) {
 			return testCaseResultMap;
 		}
 		
+			
+		Map<String, Map<Long, String>> searchedTests = searchIssues(zephyrData);
 		
 		for (Iterator<TestCaseResultModel> iterator = testCases.iterator(); iterator.hasNext();) {
 			TestCaseResultModel testCaseWithStatus = (TestCaseResultModel) iterator
 					.next();
 			
-		String url = null;
-		
-		String searchJQL = JQL_SEARCH_TESTS;
-		searchJQL = searchJQL.replace("{pId}", zephyrData.getZephyrProjectId()+"");
-		searchJQL = searchJQL.replace("{issueTypeId}", zephyrData.getTestIssueTypeId()+"");
-		
-		url = URL_GET_ALL_TESTS.replace("{SERVER}", hostAddressWithProtocol) + "?" + searchJQL;
-		try {
-			response = client.execute(new HttpGet(url), context);
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		int statusCode = response.getStatusLine().getStatusCode();
-
-		if (statusCode >= 200 && statusCode < 300) {
-			HttpEntity entity = response.getEntity();
-			String string = null;
-			try {
-				string = EntityUtils.toString(entity);
-			} catch (ParseException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			
-			try {
-				
-				JSONObject testCaseIssues = new JSONObject(string);
-				
-				JSONArray jsonArray = testCaseIssues.getJSONArray("issues");
-				
-				if(jsonArray != null && jsonArray.length() > 0 ) {
+				if (searchedTests.containsKey(testCaseWithStatus.getTestCaseName())) {
 					
-					boolean exists = false;
-					for (int i = 0; i < jsonArray.length(); i++) {
-						JSONObject jsonObject = jsonArray.getJSONObject(i);
-						String testName = jsonObject.getJSONObject("fields").getString("summary");
-						long testId = jsonObject.getLong("id");
-						String testKey = jsonObject.getString("key");
-						
-						if (testName.trim() != null && testName.trim().equals(testCaseWithStatus.getTestCaseName())) {
-							Map<String, Boolean> map = new HashMap<String, Boolean>();
-							map.put(testKey, testCaseWithStatus.getPassed());
-							testCaseResultMap.put(testId, map);
-							exists = true;
-							break;
-						}
-					}
+					Map<Long, String> tempTestIdTestKeyMap = searchedTests.get(testCaseWithStatus.getTestCaseName());
+					Set<Entry<Long, String>> entrySet = tempTestIdTestKeyMap.entrySet();
+					Entry<Long, String> entry = entrySet.iterator().next();
 					
-					if (!exists) {
-
-						String createURL = URL_CREATE_TESTS.replace("{SERVER}", hostAddressWithProtocol);
-						HttpPost httpPost = new HttpPost(createURL);
-						httpPost.addHeader("Content-Type", "application/json");
-						
-						StringEntity se = new StringEntity(testCaseWithStatus.getTestCase());
-						httpPost.setEntity(se);
-						
-						HttpResponse response1 = client.execute(httpPost, context);
-						
-						int statusCode1 = response1.getStatusLine().getStatusCode();
-
-						if (statusCode1 >= 200 && statusCode1 < 300) {
-							HttpEntity entity1 = response1.getEntity();
-							String string1 = null;
-							try {
-								string1 = EntityUtils.toString(entity1);
-							} catch (ParseException e) {
-								e.printStackTrace();
-							} catch (IOException e) {
-								e.printStackTrace();
-							}
-						if (StringUtils.isNotBlank(string1)) {
-							
-							JSONObject jObject = new JSONObject(string1);
-							long id = jObject.getLong("id");
-							String testKey = jObject.getString("key");
-							Map<String, Boolean> map = new HashMap<String, Boolean>();
-							map.put(testKey, testCaseWithStatus.getPassed());
-							testCaseResultMap.put(id, map);
-						}
-							
-						}
 					
-					}
+					Map<String, Boolean> map = new HashMap<String, Boolean>();
+					map.put(entry.getValue(), testCaseWithStatus.getPassed());
+					testCaseResultMap.put(entry.getKey(), map);
+				} else {
+					String testCase = testCaseWithStatus.getTestCase();
+					JSONObject issue = new JSONObject(testCase);
+					issueUpdates.put(issue);
 				}
-				
-			} catch (JSONException e) {
-				e.printStackTrace();
-			} catch (UnsupportedEncodingException e) {
-				e.printStackTrace();
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			
-		} else {
-			
-			try {
-				throw new ClientProtocolException("Unexpected response status: "
-						+ statusCode);
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
-			}
-		}
-	
 	}
+		
+		
+
+
+		bulkIssues.put("issueUpdates", issueUpdates);
+		
+		String createURL = URL_CREATE_TESTS.replace("{SERVER}", zephyrData.getRestClient().getUrl());
+		HttpPost httpPost = new HttpPost(createURL);
+		httpPost.addHeader("Content-Type", "application/json");
+		
+		HttpResponse response1 = null;
+		try {
+			StringEntity se = new StringEntity(bulkIssues.toString());
+			httpPost.setEntity(se);
+			
+			response1 = zephyrData.getRestClient().getHttpclient().execute(httpPost, zephyrData.getRestClient().getContext());
+		} catch (UnsupportedEncodingException e1) {
+			e1.printStackTrace();
+		} catch (ClientProtocolException e1) {
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		
+		int statusCode1 = response1.getStatusLine().getStatusCode();
+
+		if (statusCode1 >= 200 && statusCode1 < 300) {
+			
+			Map<String, Map<Long, String>> searchedTestsAfterCreation = searchIssues(zephyrData);
+			
+			for (Iterator<TestCaseResultModel> iterator = testCases.iterator(); iterator.hasNext();) {
+				TestCaseResultModel testCaseWithStatus = (TestCaseResultModel) iterator.next();
+				
+				if (searchedTestsAfterCreation.containsKey(testCaseWithStatus.getTestCaseName())) {
+					
+					Map<Long, String> tempTestIdTestKeyMap = searchedTestsAfterCreation.get(testCaseWithStatus.getTestCaseName());
+					Set<Entry<Long, String>> entrySet = tempTestIdTestKeyMap.entrySet();
+					Entry<Long, String> entry = entrySet.iterator().next();
+					
+					
+					Map<String, Boolean> map = new HashMap<String, Boolean>();
+					map.put(entry.getValue(), testCaseWithStatus.getPassed());
+					testCaseResultMap.put(entry.getKey(), map);
+				}
+							
+		}
+		}
 		return testCaseResultMap;
 	}
 	
-	public static void findOrAddTestcase(String[] args) {
-
-		ZephyrConfigModel zephyrData = new ZephyrConfigModel();
-		zephyrData.setZephyrURL("http://localhost:1212/");
-		zephyrData.setUserName("vm_admin");
-		zephyrData.setPassword("minimini");
-		
-		TestCaseResultModel caseWithStatus = new TestCaseResultModel();
-		caseWithStatus.setPassed(true);
-		caseWithStatus.setTestCaseName("A Mohan Test Case 1");
-		caseWithStatus.setTestCase("{\"fields\":{\"summary\":\"A Mohan Test Case 1\",\"project\":{\"id\":\"10000\"},\"issuetype\":{\"id\":\"10001\"},\"description\":\"Creating of a Test via Jenkins\"}}");
-		
-		List<TestCaseResultModel> list = new ArrayList<TestCaseResultModel>();
-		list.add(caseWithStatus);
-		zephyrData.setTestcases(list);
-		getTestCaseDetails(zephyrData);
-	}
-	
-	public static Map<Long, String> getAllCyclesByReleaseID(ZephyrConfigModel zephyrData) {
+	public static Map<Long, String> getAllCyclesByVersionId(ZephyrConfigModel zephyrData) {
 
 
 		Map<Long, String> cycles = new TreeMap<Long, String>();
 		
-		String hostAddressWithProtocol = zephyrData.getZephyrURL();
-		HttpClientContext context = getClientContext(hostAddressWithProtocol, zephyrData.getUserName(), zephyrData.getPassword());
-		HttpClient client = HttpClientBuilder.create().build();
 		HttpResponse response = null;
 		
-		final String url = URL_GET_CYCLES.replace("{SERVER}", hostAddressWithProtocol) + "?projectId=" + zephyrData.getZephyrProjectId() + "&versionId=" + zephyrData.getReleaseId();
+		final String url = URL_GET_CYCLES.replace("{SERVER}", zephyrData.getRestClient().getUrl()) + "?projectId=" + zephyrData.getZephyrProjectId() + "&versionId=" + zephyrData.getVersionId();
 		try {
-			response = client.execute(new HttpGet(url), context);
+			response = zephyrData.getRestClient().getHttpclient().execute(new HttpGet(url), zephyrData.getRestClient().getContext());
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -307,12 +197,9 @@ public class TestCaseUtil {
 
 		Long cycleId = 0L;
 
-		String hostAddressWithProtocol = zephyrData.getZephyrURL();
-		HttpClientContext context = getClientContext(hostAddressWithProtocol, zephyrData.getUserName(), zephyrData.getPassword());
-		HttpClient client = HttpClientBuilder.create().build();
 		HttpResponse response = null;
 		try {
-			String assignTestsToCycleURL = URL_ASSIGN_TESTS.replace("{SERVER}", hostAddressWithProtocol);
+			String assignTestsToCycleURL = URL_ASSIGN_TESTS.replace("{SERVER}", zephyrData.getRestClient().getUrl());
 			
 		
 			StringEntity se = new StringEntity(jsonObject.toString());
@@ -321,7 +208,7 @@ public class TestCaseUtil {
 			
 			createCycleRequest.setHeader("Content-Type", "application/json");
 			createCycleRequest.setEntity(se);
-			response = client.execute(createCycleRequest, context);
+			response = zephyrData.getRestClient().getHttpclient().execute(createCycleRequest, zephyrData.getRestClient().getContext());
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -355,25 +242,17 @@ public class TestCaseUtil {
 		return cycleId;
 	}
 	
-	public static Long createExecutions(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
+	public static Map<String, Long> fetchExecutionIds(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
 
-		Long executionId = 0L;
+		Map<String, Long> issueKeyExecutionIdMap = new HashMap<String, Long>();
 
-		String hostAddressWithProtocol = zephyrData.getZephyrURL();
-		HttpClientContext context = getClientContext(hostAddressWithProtocol, zephyrData.getUserName(), zephyrData.getPassword());
-		HttpClient client = HttpClientBuilder.create().build();
 		HttpResponse response = null;
 		try {
-			String assignTestsToCycleURL = URL_CREATE_EXECUTIONS_URL.replace("{SERVER}", hostAddressWithProtocol);
 			
+			String executionsURL = URL_CREATE_EXECUTIONS_URL.replace("{SERVER}", zephyrData.getRestClient().getUrl()).replace("{projectId}", zephyrData.getZephyrProjectId()+"").replace("{versionId}", zephyrData.getVersionId()+"").replace("{cycleId}", zephyrData.getCycleId()+"");
 		
-			StringEntity se = new StringEntity(jsonObject.toString());
-			
-			HttpPost createCycleRequest = new HttpPost(assignTestsToCycleURL);
-			
-			createCycleRequest.setHeader("Content-Type", "application/json");
-			createCycleRequest.setEntity(se);
-			response = client.execute(createCycleRequest, context);
+			HttpGet executionsURLRequest = new HttpGet(executionsURL);
+			response = zephyrData.getRestClient().getHttpclient().execute(executionsURLRequest, zephyrData.getRestClient().getContext());
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -395,8 +274,16 @@ public class TestCaseUtil {
 
 			
 			try {
-				JSONObject cycleObj = new JSONObject(string);
-				executionId = Long.parseLong((String) cycleObj.keys().next());
+				JSONObject executionObject = new JSONObject(string);
+				JSONArray executions = executionObject.getJSONArray("executions");
+				
+				for (int i = 0; i < executions.length(); i++) {
+					JSONObject execution = executions.getJSONObject(i);
+					String issueKey = execution.getString("issueKey").trim();
+					long executionId = execution.getLong("id");
+					
+					issueKeyExecutionIdMap.put(issueKey, executionId);
+				}
 				
 			} catch (JSONException e) {
 				e.printStackTrace();
@@ -412,35 +299,52 @@ public class TestCaseUtil {
 			}
 		}
 	
-		return executionId;
+		return issueKeyExecutionIdMap;
 	}
 	
-	public static Long executeTests(ZephyrConfigModel zephyrData, long executionId, boolean status) {
+	public static void executeTests(ZephyrConfigModel zephyrData, List<Long> passList, List<Long> failList) {
 
 
-		String hostAddressWithProtocol = zephyrData.getZephyrURL();
-		HttpClientContext context = getClientContext(hostAddressWithProtocol, zephyrData.getUserName(), zephyrData.getPassword());
-		HttpClient client = HttpClientBuilder.create().build();
-		HttpResponse response = null;
+		CloseableHttpResponse response = null;
 		try {
-			String assignTestsToCycleURL = URL_EXECUTE_TEST.replace("{SERVER}", hostAddressWithProtocol).replace("{id}", executionId+"");
+			String bulkExecuteTestsURL = URL_EXECUTE_TEST.replace("{SERVER}", zephyrData.getRestClient().getUrl());
 			
-			JSONObject executionJObj = new JSONObject();
 			
-			if(status) {
-				executionJObj.put("status", 1);
-			} else {
-				executionJObj.put("status", 2);
+			if (failList.size() > 0) {
+				JSONArray failedTests = new JSONArray();
+				JSONObject failObj = new JSONObject();
+				
+				for (long failedTest: failList) {
+					failedTests.put(failedTest);
+				}
+				failObj.put("executions", failedTests);
+				failObj.put("status", 2);
+				StringEntity failEntity = new StringEntity(failObj.toString());
+				HttpPut bulkUpdateFailedTests = new HttpPut(bulkExecuteTestsURL);
+				bulkUpdateFailedTests.setHeader("Content-Type", "application/json");
+				bulkUpdateFailedTests.setEntity(failEntity);
+				response = zephyrData.getRestClient().getHttpclient().execute(bulkUpdateFailedTests, zephyrData.getRestClient().getContext());
 			}
 			
 		
-			StringEntity se = new StringEntity(executionJObj.toString());
+			if (passList.size() > 0) {
+				response.close();
 			
-			HttpPost createCycleRequest = new HttpPost(assignTestsToCycleURL);
-			
-			createCycleRequest.setHeader("Content-Type", "application/json");
-			createCycleRequest.setEntity(se);
-			response = client.execute(createCycleRequest, context);
+			JSONArray passedTests = new JSONArray();
+			JSONObject passObj = new JSONObject();
+			for (long passedTest: passList) {
+				passedTests.put(passedTest);
+			}
+			passObj.put("executions", passedTests);
+			passObj.put("status", 1);
+			StringEntity passEntity = new StringEntity(passObj.toString());
+			HttpPut bulkUpdatePassedTests = new HttpPut(bulkExecuteTestsURL);
+			bulkUpdatePassedTests.setHeader("Content-Type", "application/json");
+			bulkUpdatePassedTests.setEntity(passEntity);
+			response = zephyrData.getRestClient().getHttpclient().execute(bulkUpdatePassedTests, zephyrData.getRestClient().getContext());
+			}
+
+
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -461,15 +365,6 @@ public class TestCaseUtil {
 			}
 
 			
-			try {
-				JSONObject cycleObj = new JSONObject(string);
-				executionId = Long.parseLong((String) cycleObj.keys().next());
-				
-			} catch (JSONException e) {
-				e.printStackTrace();
-			}
-			
-			
 		} else {
 			try {
 				throw new ClientProtocolException("Unexpected response status: "
@@ -479,23 +374,24 @@ public class TestCaseUtil {
 			}
 		}
 	
-		return executionId;
 	}
 	public static void processTestCaseDetails(ZephyrConfigModel zephyrData) {
 		Map<Long, Map<String, Boolean>> testCaseDetails = getTestCaseDetails(zephyrData);
 		
-		long cycleId;
+		long cycleId = 0;
 		if(zephyrData.getCycleId() == NEW_CYCLE_KEY_IDENTIFIER) {
 			cycleId = Cycle.createCycle(zephyrData);
-		} else {
-			Cycle.deleteCycle(zephyrData);
-			cycleId = Cycle.createCycle(zephyrData);
-		}
+			zephyrData.setCycleId(cycleId);
+		} 
 		
-		zephyrData.setCycleId(cycleId);
+//		else {
+//			Cycle.deleteCycle(zephyrData);
+//			cycleId = Cycle.createCycle(zephyrData);
+//		}
+		
 		
 		JSONObject jsonObject = new JSONObject();
-		jsonObject.put("versionId", zephyrData.getReleaseId());
+		jsonObject.put("versionId", zephyrData.getVersionId());
 		jsonObject.put("cycleId", zephyrData.getCycleId());
 		jsonObject.put("projectId", zephyrData.getZephyrProjectId());
 		jsonObject.put("method", "1");
@@ -519,7 +415,10 @@ public class TestCaseUtil {
 		jsonObject.put("issues", jArr);
 
 		assignTests(zephyrData, jsonObject);
-		
+		Map<String, Long> issueKeyExecutionIdMap = fetchExecutionIds(zephyrData, createExecutionsJObj);
+
+		List<Long> passList = new ArrayList<Long>();
+		List<Long> failList = new ArrayList<Long>();
 		for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
 			Entry<Long, Map<String, Boolean>> entry = iterator
 					.next();
@@ -529,15 +428,97 @@ public class TestCaseUtil {
 				String issueKey = iterator2.next();
 				
 				createExecutionsJObj.put("issueId", entry.getKey());
-				createExecutionsJObj.put("versionId", zephyrData.getReleaseId());
+				createExecutionsJObj.put("versionId", zephyrData.getVersionId());
 				createExecutionsJObj.put("cycleId", zephyrData.getCycleId());
 				createExecutionsJObj.put("projectId", zephyrData.getZephyrProjectId());
 				
 
-				Long executionId = createExecutions(zephyrData, createExecutionsJObj);
-				executeTests(zephyrData, executionId, value.get(issueKey));
+//				executeTests(zephyrData, executionId, value.get(issueKey));
 				
+				boolean pass = value.get(issueKey);
+				Long executionId = issueKeyExecutionIdMap.get(issueKey);
+				if(pass) {
+					passList.add(executionId );
+				} else {
+					failList.add(executionId);
+				}
 			}
 		}
+		executeTests(zephyrData, passList, failList);
+	}
+	
+	
+	private static Map<String, Map<Long, String>> searchIssues(ZephyrConfigModel zephyrData) {
+		
+		Map<String, Map<Long, String>> tempResultMap = new HashMap<String, Map<Long,String>>();
+
+		HttpResponse response = null;
+		String isssueSearchURL = null;
+		
+		String searchJQL = JQL_SEARCH_TESTS;
+		searchJQL = searchJQL.replace("{pId}", zephyrData.getZephyrProjectId()+"");
+		searchJQL = searchJQL.replace("{issueTypeId}", zephyrData.getTestIssueTypeId()+"");
+		
+		isssueSearchURL = URL_GET_ALL_TESTS.replace("{SERVER}", zephyrData.getRestClient().getUrl()) + "?" + searchJQL;
+		JSONArray searchedIssues = null;
+		try {
+			response = zephyrData.getRestClient().getHttpclient().execute(new HttpGet(isssueSearchURL), zephyrData.getRestClient().getContext());
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		int statusCode = response.getStatusLine().getStatusCode();
+
+		if (statusCode >= 200 && statusCode < 300) {
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			try {
+				
+				JSONObject testCaseIssues = new JSONObject(string);
+				searchedIssues = testCaseIssues.getJSONArray("issues");
+				
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+		} else {
+			try {
+				throw new ClientProtocolException("Unexpected response status: "
+						+ statusCode);
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			}
+		}
+		
+		try {
+			
+			if(searchedIssues != null && searchedIssues.length() > 0 ) {
+				
+				for (int i = 0; i < searchedIssues.length(); i++) {
+					JSONObject jsonObject = searchedIssues.getJSONObject(i);
+					String testName = jsonObject.getJSONObject("fields").getString("summary").trim();
+					long testId = jsonObject.getLong("id");
+					String testKey = jsonObject.getString("key").trim();
+					
+					Map<Long,String> tempTestIdTestKeyMap = new HashMap<Long, String>();
+					tempTestIdTestKeyMap.put(testId, testKey);
+					tempResultMap.put(testName, tempTestIdTestKeyMap);
+				}
+			}
+			
+		} catch (JSONException e) {
+			e.printStackTrace();
+		}
+
+		
+		return tempResultMap;
 	}
 }

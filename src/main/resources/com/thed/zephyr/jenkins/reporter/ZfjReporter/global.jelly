@@ -3,7 +3,7 @@
    <f:section title="Zephyr For Jira Configuration">
  
  <f:entry title="JIRA Server(s)">
- <f:repeatable var="zephyrInstancesList" name="zephyrInstances" items="${instance.zephyrInstances}" noAddButton="false" minimum="0">
+ <f:repeatable var="zephyrInstancesList" name="jiraInstances" items="${instance.jiraInstances}" noAddButton="false" minimum="0">
     <table>
         <f:entry title="Jira Server" description="JIRA Server IP address or hostname" 
                                 field="serverAddress">

@@ -1,8 +1,6 @@
 package com.thed.zephyr.jenkins.utils.rest;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -11,22 +9,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.http.HttpEntity;
-import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
-import org.apache.http.auth.AuthScope;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.AuthCache;
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.CredentialsProvider;
-import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.HttpHostConnectException;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.BasicAuthCache;
-import org.apache.http.impl.client.BasicCredentialsProvider;
-import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -39,15 +26,13 @@ public class Project {
 
 	
 	
-	public static Long getProjectIdByName(String projectName, String hostNameWithProtocol, String userName, String password) {
+	public static Long getProjectIdByName(String projectName, RestClient restClient) {
 
 		Long projectId = 0L;
 
-		HttpClientContext context = getClientContext(hostNameWithProtocol, userName, password);
-		HttpClient client = HttpClientBuilder.create().build();
 		HttpResponse response = null;
 		try {
-			response = client.execute(new HttpGet(hostNameWithProtocol + "/flex/services/rest/latest/project?name=" + URLEncoder.encode(projectName, "utf-8")), context);
+			response = restClient.getHttpclient().execute(new HttpGet(restClient.getUrl() + "/flex/services/rest/latest/project?name=" + URLEncoder.encode(projectName, "utf-8")), restClient.getContext());
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -96,18 +81,16 @@ public class Project {
 		return projectId;
 	}
 	
-	public static Map<Long, String> getAllProjects(String hostNameWithProtocol, String userName, String password) {
+	public static Map<Long, String> getAllProjects(RestClient restClient) {
 
 
 		Map<Long, String> projects = new TreeMap<Long, String>();
 		
-		HttpClientContext context = getClientContext(hostNameWithProtocol, userName, password);
-		HttpClient client = HttpClientBuilder.create().build();
 		HttpResponse response = null;
 		
-		final String url = URL_GET_PROJECTS.replace("{SERVER}", hostNameWithProtocol);
+		final String url = URL_GET_PROJECTS.replace("{SERVER}", restClient.getUrl());
 		try {
-			response = client.execute(new HttpGet(url), context);
+			response = restClient.getHttpclient().execute(new HttpGet(url), restClient.getContext());
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (HttpHostConnectException e) {
@@ -175,29 +158,4 @@ public class Project {
 	
 		return projects;
 	}
-	
-	
-	private static HttpClientContext getClientContext(String hostAddressWithProtocol, String userName, String password) {
-		URL url;
-		HttpClientContext context = null;
-		try {
-			url = new URL(hostAddressWithProtocol);
-			HttpHost targetHost = new HttpHost(url.getHost(), url.getPort(), url.getProtocol());
-			CredentialsProvider credsProvider = new BasicCredentialsProvider();
-			credsProvider.setCredentials(AuthScope.ANY,
-					new UsernamePasswordCredentials(userName, password));
-			
-			AuthCache authCache = new BasicAuthCache();
-			authCache.put(targetHost, new BasicScheme());
-			
-			context = HttpClientContext.create();
-			context.setCredentialsProvider(credsProvider);
-			context.setAuthCache(authCache);
-		} catch (MalformedURLException e) {
-			e.printStackTrace();
-		}
-		
-		return context;
-	}
-	
 }

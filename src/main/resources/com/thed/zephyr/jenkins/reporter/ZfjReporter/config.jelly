@@ -7,7 +7,7 @@
   <f:entry title="Project Name" field="projectKey">
     <f:select />
   </f:entry>
-  <f:entry title="Version" field="releaseKey">
+  <f:entry title="Version" field="versionKey">
     <f:select />
   </f:entry>
   <f:entry title="Cycle" field="cycleKey">
