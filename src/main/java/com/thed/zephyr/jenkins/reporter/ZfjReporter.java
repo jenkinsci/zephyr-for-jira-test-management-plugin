@@ -13,7 +13,6 @@ import hudson.tasks.junit.SuiteResult;
 import hudson.tasks.junit.TestResultAction;
 import hudson.tasks.junit.CaseResult;
 
-import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -37,6 +36,8 @@ import com.thed.zephyr.jenkins.utils.rest.RestClient;
 import com.thed.zephyr.jenkins.utils.rest.ServerInfo;
 import com.thed.zephyr.jenkins.utils.rest.TestCaseUtil;
 
+import static com.thed.zephyr.jenkins.reporter.ZfjConstants.*;
+
 public class ZfjReporter extends Notifier {
 	/********************
 	 * Constants
@@ -53,9 +54,7 @@ public class ZfjReporter extends Notifier {
 
 	
     private static final String PluginName = new String("[ZapiTestResultReporter]");
-    static final String ADD_ZEPHYR_GLOBAL_CONFIG = "Please Add Zephyr Server in the Global config";
     private final String pInfo = String.format("%s [INFO]", PluginName);
-    static final String NEW_CYCLE_KEY = "CreateNewCycle";
 
     @DataBoundConstructor
 	public ZfjReporter(String serverAddress, String projectKey,
@@ -92,32 +91,39 @@ public class ZfjReporter extends Notifier {
 
 		ZephyrConfigModel zephyrConfig = initializeZephyrData();
 
-        	prepareZephyrTests(build, zephyrConfig);
+        	boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
+        	
+        	if(!prepareZephyrTests) {
+    			logger.println("Error parsing surefire reports.");
+    			logger.println("Please ensure \"Publish JUnit test result report is added\" as a post build action");
+    			return false;
+        	}
+        	
 			TestCaseUtil.processTestCaseDetails(zephyrConfig);
-			try {
-				zephyrConfig.getRestClient().getHttpclient().close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-            
-//      }
+
+            zephyrConfig.getRestClient().destroy();
         logger.printf("%s Done.%n", pInfo);
         return true;
     }
 
-	/**
-	 * @param build
-	 * @param zephyrConfig
-	 */
-	private void prepareZephyrTests(final AbstractBuild build,
+	private boolean prepareZephyrTests(final AbstractBuild build,
 			ZephyrConfigModel zephyrConfig) {
+		
+		boolean status = true;
 		Map<String, Boolean> zephyrTestCaseMap = new HashMap<String, Boolean>();
 		
 		TestResultAction testResultAction = build.getAction(TestResultAction.class);
-		Collection<SuiteResult> suites = testResultAction.getResult().getSuites();
+		Collection<SuiteResult> suites = null;
 		
-		if (suites == null) {
+		try {
+			suites = testResultAction.getResult().getSuites();
+		} catch (Exception e) {
+			logger.println(e.getMessage());
+		}
+		
+		if (suites == null || suites.size() == 0) {
 			logger.println("Problem parsing JUnit test Results.");
+			return false;
 		}
 		
 		
@@ -171,11 +177,10 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		
 		zephyrConfig.setTestcases(testcases);
 		zephyrConfig.setPackageNames(packageNames);
+		
+		return status;
 	}
 
-	/**
-	 * 
-	 */
 	private boolean validateBuildConfig() {
 		boolean valid = true;
 		if (StringUtils.isBlank(serverAddress)
@@ -193,18 +198,11 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		return valid;
 	}
 
-	/**
-	 *
-	 * @param hostName
-	 */
 	private void determineTestIssueTypeId(ZephyrConfigModel zephyrConfig) {
 		long testIssueTypeId = ServerInfo.findTestIssueTypeId(zephyrConfig.getRestClient());
 		zephyrConfig.setTestIssueTypeId(testIssueTypeId);
 	}
 
-	/**
-	 *
-	 */
 	private void determineCyclePrefix(ZephyrConfigModel zephyrConfig) {
 		if (StringUtils.isNotBlank(cyclePrefix)) {
 			zephyrConfig.setCyclePrefix(cyclePrefix+ "_");
@@ -213,10 +211,6 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		}
 	}
 
-	/**
-	 * @return 
-	 *
-	 */
 	private ZephyrConfigModel initializeZephyrData() {
 		ZephyrConfigModel zephyrConfig = new ZephyrConfigModel();
 		
@@ -234,9 +228,6 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		return zephyrConfig;
 	}
 
-	/**
-	 * Fetches the credentials from the global configuration
-	 */
 	private void fetchCredentials(ZephyrConfigModel zephyrConfig, String url) {
 		List<ZephyrInstance> jiraServers = getDescriptor().getJiraInstances();
 
@@ -253,10 +244,6 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		}
 	}
 
-	/**
-	 *
-	 * @param hostName
-	 */
 	private void determineCycleID(ZephyrConfigModel zephyrConfig) {
 		if (cycleKey.equalsIgnoreCase(NEW_CYCLE_KEY)) {
 			zephyrConfig.setCycleId(NEW_CYCLE_KEY_IDENTIFIER);
@@ -273,10 +260,6 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		zephyrConfig.setCycleId(cycleId);
 	}
 
-	/**
-	 *
-	 * @param hostName
-	 */
 	private void determineVersionID(ZephyrConfigModel zephyrData) {
 
 		long versionId = 0;
@@ -289,10 +272,6 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		zephyrData.setVersionId(versionId);
 	}
 
-	/**
-	 *
-	 * @param hostName
-	 */
 	private void determineProjectID(ZephyrConfigModel zephyrData) {
 		long projectId = 0;
 		try {

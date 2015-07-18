@@ -384,12 +384,6 @@ public class TestCaseUtil {
 			zephyrData.setCycleId(cycleId);
 		} 
 		
-//		else {
-//			Cycle.deleteCycle(zephyrData);
-//			cycleId = Cycle.createCycle(zephyrData);
-//		}
-		
-		
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("versionId", zephyrData.getVersionId());
 		jsonObject.put("cycleId", zephyrData.getCycleId());
