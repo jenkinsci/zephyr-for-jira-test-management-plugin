@@ -17,7 +17,6 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -39,10 +38,7 @@ import com.thed.zephyr.jenkins.utils.rest.TestCaseUtil;
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.*;
 
 public class ZfjReporter extends Notifier {
-	/********************
-	 * Constants
-	 ********************/
-	public static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
+
 	public static PrintStream logger;
 
 	private String serverAddress;
@@ -127,7 +123,6 @@ public class ZfjReporter extends Notifier {
 		}
 		
 		
-		Set<String> packageNames = new HashSet<String>();
 		
 for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		SuiteResult suiteResult = iterator.next();
@@ -137,7 +132,6 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 			String name = caseResult.getFullName();
 			if (!zephyrTestCaseMap.containsKey(name)) {
 				zephyrTestCaseMap.put(name, isPassed);
-				packageNames.add(caseResult.getPackageName());
 			}
 		}
 }
@@ -176,7 +170,6 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		}
 		
 		zephyrConfig.setTestcases(testcases);
-		zephyrConfig.setPackageNames(packageNames);
 		
 		return status;
 	}
