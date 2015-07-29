@@ -7,16 +7,17 @@
   </parent>
 
   <groupId>org.jenkins-ci.plugins</groupId>
-  <artifactId>ZephyrforJIRATestManagement</artifactId>
-  <version>1.0.0</version>
+  <artifactId>zephyr-for-jira-test-management</artifactId>
+  <version>1.0-SNAPSHOT</version>
   <packaging>hpi</packaging>
   <name>Zephyr for JIRA Test Management plugin</name>
-  <description>Creates Test Cases and update their statues for unit tests.</description>
+  <description>Sychronizes tests and update their execution status for tests in ZephyrForJira (Server and Datacenter)</description>
   
   <developers>
     <developer>
-      <id>moghgan</id>
-      <name>Mohan Kumar R</name>
+      <id>developer</id>
+      <name>Zephyr Developer</name>
+      <email>developer@getzephyr.com</email>
     </developer>
   </developers>
   
