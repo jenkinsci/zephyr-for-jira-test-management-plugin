@@ -18,11 +18,15 @@
 # under the License.
 #
 -->
-##Zephyr For JIRA connector for Jenkins (zfj-jenkins)
+##Zephyr For JIRA Connector for Jenkins (zfj-jenkins)
+
 ###About the Plugin
 
+Use the Zephyr for JIRA Connector Plugin to integrate Jenkins with your installation of Zephyr for JIRA. 
 
-Please refer to Zephyr Support <a href="_">Knowledge Base</a>
+### Usage & Help
+
+Please refer to the [Zephyr Support Knowledgebase](https://support.getzephyr.com).
 
 ### License
 
