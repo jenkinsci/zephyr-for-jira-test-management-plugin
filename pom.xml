@@ -103,4 +103,11 @@
       <url>http://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
+
+  <scm>
+    <connection>scm:git:git://github.com/jenkinsci/zephyr-for-jira-test-management-plugin.git</connection>
+    <developerConnection>scm:git:git@github.com:jenkinsci/zephyr-for-jira-test-management-plugin.git</developerConnection>
+    <url>https://github.com/jenkinsci/jenkinsci/zephyr-for-jira-test-management-plugin</url>
+    <tag>HEAD</tag>
+  </scm>
 </project>
