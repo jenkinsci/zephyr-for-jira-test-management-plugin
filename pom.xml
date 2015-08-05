@@ -107,7 +107,7 @@
   <scm>
     <connection>scm:git:git://github.com/jenkinsci/zephyr-for-jira-test-management-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/zephyr-for-jira-test-management-plugin.git</developerConnection>
-    <url>https://github.com/jenkinsci/jenkinsci/zephyr-for-jira-test-management-plugin</url>
+    <url>https://wiki.jenkins-ci.org/display/JENKINS/Zephyr+For+Jira+Test+Management+Plugin</url>
     <tag>HEAD</tag>
   </scm>
 </project>
