@@ -8,7 +8,7 @@
 
   <groupId>org.jenkins-ci.plugins</groupId>
   <artifactId>zephyr-for-jira-test-management</artifactId>
-  <version>1.2-SNAPSHOT</version>
+  <version>1.2</version>
   <packaging>hpi</packaging>
   <name>Zephyr for JIRA Test Management plugin</name>
   <description>Sychronizes tests and update their execution status for tests in ZephyrForJira (Server and Datacenter)</description>
@@ -109,6 +109,6 @@
     <connection>scm:git:git://github.com/jenkinsci/zephyr-for-jira-test-management-plugin.git</connection>
     <developerConnection>scm:git:git@github.com:jenkinsci/zephyr-for-jira-test-management-plugin.git</developerConnection>
     <url>https://github.com/jenkinsci/jenkinsci/zephyr-for-jira-test-management-plugin</url>
-    <tag>HEAD</tag>
+    <tag>zephyr-for-jira-test-management-1.2</tag>
   </scm>
 </project>
