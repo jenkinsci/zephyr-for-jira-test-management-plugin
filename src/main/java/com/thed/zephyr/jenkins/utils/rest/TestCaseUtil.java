@@ -328,7 +328,9 @@ public class TestCaseUtil {
 			
 		
 			if (passList.size() > 0) {
-				response.close();
+				if(response != null) {
+					response.close();
+				}
 			
 			JSONArray passedTests = new JSONArray();
 			JSONObject passObj = new JSONObject();
