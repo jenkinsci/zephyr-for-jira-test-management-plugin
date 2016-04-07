@@ -43,7 +43,7 @@ public class ServerInfo {
 			String string = null;
 			try {
 				string = EntityUtils.toString(entity);
-				if (string.contains("[]")) return true;
+				if (string.startsWith("[") && string.endsWith("]") ) return true;
 			} catch (ParseException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
