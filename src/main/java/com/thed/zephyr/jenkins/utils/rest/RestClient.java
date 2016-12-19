@@ -33,7 +33,22 @@ public class RestClient {
 	private String url;
 	private String userName;
 	private String password;
-	
+
+	private String zephyrCloudURL;
+	private String accessKey;
+	private String secretKey;
+
+	public RestClient(String url, String userName, String zephyrCloudURL, String accessKey, String secretKey) {
+		super();
+		
+		this.url = url;
+		this.zephyrCloudURL = zephyrCloudURL;
+		this.accessKey = accessKey;
+		this.secretKey = secretKey;
+
+		createHttpClient();
+	}
+
 	public RestClient(String url, String userName, String password) {
 		super();
 
@@ -49,8 +64,8 @@ public class RestClient {
 		this(zephyrServer.getServerAddress(), zephyrServer.getUsername(), zephyrServer.getPassword());
 	}
 
-	public void destroy(){
-		if(httpclient != null){
+	public void destroy() {
+		if (httpclient != null) {
 			try {
 				httpclient.close();
 			} catch (IOException e) {
@@ -59,16 +74,13 @@ public class RestClient {
 		}
 	}
 
-	private HttpClientContext createClientContext(
-			String hostAddressWithProtocol, String userName, String password) {
+	private HttpClientContext createClientContext(String hostAddressWithProtocol, String userName, String password) {
 		URL url;
 		try {
 			url = new URL(hostAddressWithProtocol);
-			HttpHost targetHost = new HttpHost(url.getHost(), url.getPort(),
-					url.getProtocol());
+			HttpHost targetHost = new HttpHost(url.getHost(), url.getPort(), url.getProtocol());
 			CredentialsProvider credsProvider = new BasicCredentialsProvider();
-			credsProvider.setCredentials(AuthScope.ANY,
-					new UsernamePasswordCredentials(userName, password));
+			credsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
 
 			AuthCache authCache = new BasicAuthCache();
 			authCache.put(targetHost, new BasicScheme());
@@ -87,11 +99,9 @@ public class RestClient {
 		try {
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-					builder.build(),
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
 					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf)
-					.build();
+			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
 		} catch (KeyManagementException e1) {
 			e1.printStackTrace();
 		} catch (NoSuchAlgorithmException e1) {
@@ -119,6 +129,18 @@ public class RestClient {
 
 	public String getPassword() {
 		return password;
+	}
+
+	public String getZephyrCloudURL() {
+		return zephyrCloudURL;
+	}
+
+	public String getAccessKey() {
+		return accessKey;
+	}
+
+	public String getSecretKey() {
+		return secretKey;
 	}
 
 }

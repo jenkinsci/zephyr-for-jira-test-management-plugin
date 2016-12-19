@@ -3,7 +3,7 @@
   <parent>
     <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>plugin</artifactId>
-    <version>1.605</version><!-- which version of Jenkins is this plugin built against? -->
+    <version>2.5</version><!-- which version of Jenkins is this plugin built against? -->
   </parent>
 
   <groupId>org.jenkins-ci.plugins</groupId>
@@ -24,6 +24,7 @@
   
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <jenkins.version>1.651</jenkins.version>
   </properties>
 
   <build>
@@ -88,20 +89,26 @@
       <version>1.5</version>
       <scope>compile</scope>
     </dependency>
+	  <dependency>
+		  <groupId>com.thed.zephyr.connect</groupId>
+		  <artifactId>zfj-cloud-rest-client</artifactId>
+		  <version>3.0</version>
+	  </dependency>
+    
   </dependencies>
 
   <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
   <repositories>
     <repository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </repository>
   </repositories>
 
   <pluginRepositories>
     <pluginRepository>
       <id>repo.jenkins-ci.org</id>
-      <url>http://repo.jenkins-ci.org/public/</url>
+      <url>https://repo.jenkins-ci.org/public/</url>
     </pluginRepository>
   </pluginRepositories>
 
