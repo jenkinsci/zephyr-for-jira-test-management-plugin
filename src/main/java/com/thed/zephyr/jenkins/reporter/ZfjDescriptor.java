@@ -6,6 +6,7 @@ import static com.thed.zephyr.jenkins.reporter.ZfjConstants.CYCLE_DURATION_30_DA
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.CYCLE_DURATION_7_DAYS;
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.NAME_POST_BUILD_ACTION;
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.NEW_CYCLE_KEY;
+import static com.thed.zephyr.jenkins.reporter.ZfjConstants.ATLASSIAN_NET;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
@@ -300,7 +301,8 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 		}
 		restClient.destroy();
 		
-		RestClient restClient2  = new RestClient(jiraCloudAddress, jiraCloudUserName, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
+		RestClient restClient2  = new RestClient(jiraCloudAddress, jiraCloudUserName, jiraCloudPassword, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
+
 		
 		Map<Boolean, String> findServerAddressIsValidZephyrCloudURL = ServerInfo.findServerAddressIsValidZephyrCloudURL(restClient2);
 		if (!findServerAddressIsValidZephyrCloudURL.containsKey(true)) {
@@ -339,13 +341,16 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 		
 		if (StringUtils.isBlank(serverAddress)
 				|| serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
-				|| (this.jiraInstances.size() == 0)) {
+				|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 			return m;
 		}
     	
 
-		RestClient restClient = getRestclient(serverAddress);
+		RestClient restClient = null;
+		
+		restClient = getRestclient(serverAddress);
+		
 		Map<Long, String> projects = Project.getAllProjects(restClient);
 
 		Set<Entry<Long, String>> projectEntrySet = projects.entrySet();
@@ -362,12 +367,18 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 	private RestClient getRestclient(String serverAddress) {
 		String tempUserName = null;
 		String tempPassword = null;
-		
-		if (serverAddress.contains("atlassian.net")) {
+		RestClient restClient = null;
+		if (serverAddress.contains(ATLASSIAN_NET)) {
 			for (ZephyrCloudInstance zephyrCloudInstance: jiraCloudInstances) {
 	    		if(zephyrCloudInstance.getJiraCloudAddress().trim().equals(serverAddress)) {
-	    			tempUserName = zephyrCloudInstance.getJiraCloudUserName();
-	    			tempPassword = zephyrCloudInstance.getJiraCloudPassword();
+	    			String jiraCloudUserName = zephyrCloudInstance.getJiraCloudUserName();
+	    			String jiraCloudPassword = zephyrCloudInstance.getJiraCloudPassword();
+	    			String zephyrCloudAddress = zephyrCloudInstance.getZephyrCloudAddress();
+	    			String zephyrCloudAccessKey = zephyrCloudInstance.getZephyrCloudAccessKey();
+	    			String zephyrCloudSecretKey = zephyrCloudInstance.getZephyrCloudSecretKey();
+	    			
+	    			restClient = new RestClient(serverAddress, jiraCloudUserName, jiraCloudPassword, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
+	    			
 	    		}
 	    	}
 		}	else {
@@ -375,10 +386,10 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 				if(z.getServerAddress().trim().equals(serverAddress)) {
 					tempUserName = z.getUsername();
 					tempPassword = z.getPassword();
+					restClient = new RestClient(serverAddress, tempUserName, tempPassword);
 				}
 			}
 		}
-			RestClient restClient = new RestClient(serverAddress, tempUserName, tempPassword);
 			
 			return restClient;
 	}
@@ -390,7 +401,7 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 
 		if (StringUtils.isBlank(projectKey)
 				|| projectKey.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
-				|| (this.jiraInstances.size() == 0)) {
+				|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 			return m;
 		}
@@ -417,21 +428,27 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 
 		if (StringUtils.isBlank(versionKey)
 				|| versionKey.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
-				|| (this.jiraInstances.size() == 0)) {
+				|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 			return m;
 		}
     	
-    	long parseLong = Long.parseLong(versionKey);
+    	long versionId = Long.parseLong(versionKey);
 
     	RestClient restClient = getRestclient(serverAddress);
-		Map<Long, String> cycles = Cycle.getAllCyclesByVersionId(parseLong, restClient, projectKey);
+    	
+    	Map<String, String> cycles = null;
+    	if (serverAddress.contains(ATLASSIAN_NET)) {
+    		cycles = Cycle.getAllCyclesByVersionIdZFJC(versionId, restClient, projectKey);
+    	} else {
+    		cycles = Cycle.getAllCyclesByVersionId(versionId, restClient, projectKey);
+    	}
 		
-		Set<Entry<Long, String>> cycleEntrySet = cycles.entrySet();
+		Set<Entry<String, String>> cycleEntrySet = cycles.entrySet();
 
-		for (Iterator<Entry<Long, String>> iterator = cycleEntrySet.iterator(); iterator.hasNext();) {
-			Entry<Long, String> entry = iterator.next();
-			m.add(entry.getValue(), entry.getKey()+"");
+		for (Iterator<Entry<String, String>> iterator = cycleEntrySet.iterator(); iterator.hasNext();) {
+			Entry<String, String> entry = iterator.next();
+			m.add(entry.getValue(), entry.getKey());
 		}
 		
 		m.add("New Cycle", NEW_CYCLE_KEY);

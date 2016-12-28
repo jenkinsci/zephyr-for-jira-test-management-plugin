@@ -38,15 +38,16 @@ public class RestClient {
 	private String accessKey;
 	private String secretKey;
 
-	public RestClient(String url, String userName, String zephyrCloudURL, String accessKey, String secretKey) {
-		super();
+	public RestClient(String url, String userName, String password, String zephyrCloudURL, String accessKey, String secretKey) {
+		this(url, userName, password);
 		
 		this.url = url;
+		this.userName = userName;
+		this.password = password;
 		this.zephyrCloudURL = zephyrCloudURL;
 		this.accessKey = accessKey;
 		this.secretKey = secretKey;
 
-		createHttpClient();
 	}
 
 	public RestClient(String url, String userName, String password) {

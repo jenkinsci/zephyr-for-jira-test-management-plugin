@@ -28,7 +28,7 @@ import org.json.JSONObject;
 import com.thed.zephyr.jenkins.model.TestCaseResultModel;
 import com.thed.zephyr.jenkins.model.ZephyrConfigModel;
 
-public class TestCaseUtil {
+public class TestCaseUtil implements RestBase {
 	
     public static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
 
@@ -193,7 +193,17 @@ public class TestCaseUtil {
 		return cycles;
 	}
 
-	public static Long assignTests(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
+	public static void assignTests(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
+		
+		if (zephyrData.isZfjClud()) {
+			
+			try {
+				assignTestsZFJC(zephyrData, jsonObject);
+			} catch (Exception e){
+				e.printStackTrace();
+			}
+			return;
+		}
 
 		Long cycleId = 0L;
 
@@ -239,7 +249,6 @@ public class TestCaseUtil {
 			}
 		}
 	
-		return cycleId;
 	}
 	
 	public static Map<String, Long> fetchExecutionIds(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
@@ -381,10 +390,13 @@ public class TestCaseUtil {
 		Map<Long, Map<String, Boolean>> testCaseDetails = getTestCaseDetails(zephyrData);
 		
 		long cycleId = 0;
-		if(zephyrData.getCycleId() == NEW_CYCLE_KEY_IDENTIFIER) {
+		if(zephyrData.getCycleId() == NEW_CYCLE_KEY_IDENTIFIER && !zephyrData.isZfjClud()) {
 			cycleId = Cycle.createCycle(zephyrData);
 			zephyrData.setCycleId(cycleId);
-		} 
+		} else if (zephyrData.getCycleId() == NEW_CYCLE_KEY_IDENTIFIER && zephyrData.isZfjClud()) {
+			String cycleIdZFJC = Cycle.createCycleZFJC(zephyrData);
+			zephyrData.setCycleIdZfjCloud(cycleIdZFJC);
+		}
 		
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("versionId", zephyrData.getVersionId());
@@ -411,39 +423,76 @@ public class TestCaseUtil {
 		jsonObject.put("issues", jArr);
 
 		assignTests(zephyrData, jsonObject);
-		Map<String, Long> issueKeyExecutionIdMap = fetchExecutionIds(zephyrData, createExecutionsJObj);
-
-		List<Long> passList = new ArrayList<Long>();
-		List<Long> failList = new ArrayList<Long>();
-		for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
-			Entry<Long, Map<String, Boolean>> entry = iterator
-					.next();
-			Map<String, Boolean> value = entry.getValue();
-			Set<String> keySet = value.keySet();
-			for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
-				String issueKey = iterator2.next();
-				
-				createExecutionsJObj.put("issueId", entry.getKey());
-				createExecutionsJObj.put("versionId", zephyrData.getVersionId());
-				createExecutionsJObj.put("cycleId", zephyrData.getCycleId());
-				createExecutionsJObj.put("projectId", zephyrData.getZephyrProjectId());
-				
-
+		
+		if (!zephyrData.isZfjClud()) {
+			
+			Map<String, Long> issueKeyExecutionIdMap = fetchExecutionIds(zephyrData, createExecutionsJObj);
+			
+			List<Long> passList = new ArrayList<Long>();
+			List<Long> failList = new ArrayList<Long>();
+			for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
+				Entry<Long, Map<String, Boolean>> entry = iterator
+						.next();
+				Map<String, Boolean> value = entry.getValue();
+				Set<String> keySet = value.keySet();
+				for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
+					String issueKey = iterator2.next();
+					
+					createExecutionsJObj.put("issueId", entry.getKey());
+					createExecutionsJObj.put("versionId", zephyrData.getVersionId());
+					createExecutionsJObj.put("cycleId", zephyrData.getCycleId());
+					createExecutionsJObj.put("projectId", zephyrData.getZephyrProjectId());
+					
+					
 //				executeTests(zephyrData, executionId, value.get(issueKey));
-				
-				boolean pass = value.get(issueKey);
-				Long executionId = issueKeyExecutionIdMap.get(issueKey);
-				if(pass) {
-					passList.add(executionId );
-				} else {
-					failList.add(executionId);
+					
+					boolean pass = value.get(issueKey);
+					Long executionId = issueKeyExecutionIdMap.get(issueKey);
+					if(pass) {
+						passList.add(executionId );
+					} else {
+						failList.add(executionId);
+					}
 				}
 			}
+			executeTests(zephyrData, passList, failList);
+		} else {
+			
+			Map<String, String> issueKeyExecutionIdMap = fetchExecutionIdsZFJC(zephyrData, createExecutionsJObj);
+			
+			List<String> passList = new ArrayList<String>();
+			List<String> failList = new ArrayList<String>();
+			for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
+				Entry<Long, Map<String, Boolean>> entry = iterator
+						.next();
+				Map<String, Boolean> value = entry.getValue();
+				Set<String> keySet = value.keySet();
+				for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
+					String issueKey = iterator2.next();
+					
+					createExecutionsJObj.put("issueId", entry.getKey());
+					createExecutionsJObj.put("versionId", zephyrData.getVersionId());
+					createExecutionsJObj.put("cycleId", zephyrData.getCycleIdZfjCloud());
+					createExecutionsJObj.put("projectId", zephyrData.getZephyrProjectId());
+					
+					
+//				executeTests(zephyrData, executionId, value.get(issueKey));
+					
+					boolean pass = value.get(issueKey);
+					String executionId = issueKeyExecutionIdMap.get(issueKey);
+					if(pass) {
+						passList.add(executionId );
+					} else {
+						failList.add(executionId);
+					}
+				}
+			}
+			executeTestsZFJC(zephyrData, passList, failList);
 		}
-		executeTests(zephyrData, passList, failList);
 	}
 	
 	
+
 	private static Map<String, Map<Long, String>> searchIssues(ZephyrConfigModel zephyrData) {
 		
 		Map<String, Map<Long, String>> tempResultMap = new HashMap<String, Map<Long,String>>();
@@ -517,4 +566,317 @@ public class TestCaseUtil {
 		
 		return tempResultMap;
 	}
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	public static void assignTestsZFJC(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
+
+		HttpResponse response = null;
+		try {
+			RestClient restClient = zephyrData.getRestClient();
+			String assignTestsToCycleURL = URL_ZFJC_ASSIGN_TESTS.replace(ZFJC_SERVER, restClient.getZephyrCloudURL()).replace(CYCLEID, zephyrData.getCycleIdZfjCloud());
+			String jwtHeaderValue = ServerInfo.generateJWT(restClient, assignTestsToCycleURL, HTTP_REQUEST_METHOD_POST);
+
+		
+			StringEntity se = new StringEntity(jsonObject.toString());
+			
+			HttpPost createCycleRequest = new HttpPost(assignTestsToCycleURL);
+			
+			createCycleRequest.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+			createCycleRequest.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
+			createCycleRequest.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
+			
+			createCycleRequest.setEntity(se);
+			response = zephyrData.getRestClient().getHttpclient().execute(createCycleRequest, zephyrData.getRestClient().getContext());
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		int statusCode = response.getStatusLine().getStatusCode();
+
+		if (statusCode >= 200 && statusCode < 300) {
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			
+			
+		} else {
+			try {
+				throw new ClientProtocolException("Unexpected response status: "
+						+ statusCode);
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			}
+		}
+	
+	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	public static Map<String, String> fetchExecutionIdsZFJC(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
+
+		Map<String, String> issueKeyExecutionIdMap = new HashMap<String, String>();
+
+		HttpResponse response = null;
+		try {
+			
+			RestClient restClient = zephyrData.getRestClient();
+			String executionsURL = URL_ZFJC_CREATE_EXECUTIONS_URL.replace(ZFJC_SERVER, restClient.getZephyrCloudURL()).replace(CYCLEID, zephyrData.getCycleIdZfjCloud()).replace(PROJECTID, zephyrData.getZephyrProjectId()+"").replace(VERSIONID, zephyrData.getVersionId()+"").replace(PAGINATION_OFFSET, 0+"");
+			String jwtHeaderValue = ServerInfo.generateJWT(restClient, executionsURL, HTTP_REQUEST_METHOD_GET);
+
+			HttpGet executionsURLRequest = new HttpGet(executionsURL);
+
+			executionsURLRequest.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+			executionsURLRequest.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
+			executionsURLRequest.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
+
+		
+			response = zephyrData.getRestClient().getHttpclient().execute(executionsURLRequest, zephyrData.getRestClient().getContext());
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		int statusCode = response.getStatusLine().getStatusCode();
+
+		if (statusCode >= 200 && statusCode < 300) {
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			
+			try {
+				JSONObject executionObject = new JSONObject(string);
+				JSONArray executions = executionObject.getJSONArray("searchObjectList");
+				
+				for (int i = 0; i < executions.length(); i++) {
+					JSONObject execution = executions.getJSONObject(i);
+					String issueKey = execution.getString("issueKey").trim();
+					String executionId = execution.getJSONObject("execution").getString("id");
+					
+					issueKeyExecutionIdMap.put(issueKey, executionId);
+				}
+				
+			} catch (JSONException e) {
+				e.printStackTrace();
+			}
+			
+			
+		} else {
+			try {
+				throw new ClientProtocolException("Unexpected response status: "
+						+ statusCode);
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			}
+		}
+	
+		return issueKeyExecutionIdMap;
+	}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	private static void executeTestsZFJC(ZephyrConfigModel zephyrData, List<String> passList, List<String> failList) {
+
+		CloseableHttpResponse response = null;
+		try {
+
+			RestClient restClient = zephyrData.getRestClient();
+			String bulkExecuteTestsURL = URL_ZFJC_EXECUTE_TEST.replace(ZFJC_SERVER, restClient.getZephyrCloudURL());
+			String jwtHeaderValue = ServerInfo.generateJWT(restClient, bulkExecuteTestsURL, HTTP_REQUEST_METHOD_POST);
+
+			HttpPost bulkUpdateFailedTests = new HttpPost(bulkExecuteTestsURL);
+
+			bulkUpdateFailedTests.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+			bulkUpdateFailedTests.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
+			bulkUpdateFailedTests.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
+
+			
+			if (failList.size() > 0) {
+				JSONArray failedTests = new JSONArray();
+				JSONObject failObj = new JSONObject();
+				
+				for (String failedTest: failList) {
+					failedTests.put(failedTest);
+				}
+				failObj.put("executions", failedTests);
+				failObj.put("status", 2);
+				failObj.put("stepStatus", -1);
+				failObj.put("testStepStatusChangeFlag", true);
+				failObj.put("clearDefectMappingFlag", false);
+				StringEntity failEntity = new StringEntity(failObj.toString());
+				bulkUpdateFailedTests.setEntity(failEntity);
+				response = restClient.getHttpclient().execute(bulkUpdateFailedTests);
+			}
+			
+		
+			if (passList.size() > 0) {
+				if(response != null) {
+					response.close();
+				}
+			
+			JSONArray passedTests = new JSONArray();
+			JSONObject passObj = new JSONObject();
+			for (String passedTest: passList) {
+				passedTests.put(passedTest);
+			}
+			passObj.put("executions", passedTests);
+			passObj.put("status", 1);
+			passObj.put("stepStatus", -1);
+			passObj.put("testStepStatusChangeFlag", true);
+			passObj.put("clearDefectMappingFlag", false);
+
+			StringEntity passEntity = new StringEntity(passObj.toString());
+			
+			HttpPost bulkUpdatePassedTests = new HttpPost(bulkExecuteTestsURL);
+
+			bulkUpdatePassedTests.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+			bulkUpdatePassedTests.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
+			bulkUpdatePassedTests.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
+
+			bulkUpdatePassedTests.setEntity(passEntity);
+			response = restClient.getHttpclient().execute(bulkUpdatePassedTests);
+			}
+
+
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		int statusCode = response.getStatusLine().getStatusCode();
+
+		if (statusCode >= 200 && statusCode < 300) {
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			
+		} else {
+			try {
+				throw new ClientProtocolException("Unexpected response status: "
+						+ statusCode);
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			}
+		}
+	
+	
+	}
+
 }

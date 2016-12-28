@@ -160,7 +160,7 @@ public class ServerInfo {
 		HttpResponse response = null;
 		try {
 			String constructedURL = URL_ZCLOUD_GET_GENERAL_INFO.replace("{SERVER}", restClient.getZephyrCloudURL());
-			String jwtHeaderValue = generateJWT(restClient, constructedURL);
+			String jwtHeaderValue = generateJWT(restClient, constructedURL, "GET");
 			HttpGet getRequest = new HttpGet(constructedURL);
 			
 			getRequest.addHeader("Content-Type", "application/json");
@@ -200,7 +200,7 @@ public class ServerInfo {
 		return statusMap;
 	}
 	
-	private static String generateJWT(RestClient restClient, String constructedURL) {
+	static String generateJWT(RestClient restClient, String constructedURL, String requestMethod) {
 		ZFJCloudRestClient client = ZFJCloudRestClient.restBuilder(restClient.getZephyrCloudURL(), restClient.getAccessKey(), restClient.getSecretKey(), restClient.getUserName())
 				.build();
 		JwtGenerator jwtGenerator = client.getJwtGenerator();
@@ -212,7 +212,7 @@ public class ServerInfo {
 			e.printStackTrace();
 		}
 		int expirationInSec = 360;
-		String jwt = jwtGenerator.generateJWT("GET", uri, expirationInSec);
+		String jwt = jwtGenerator.generateJWT(requestMethod, uri, expirationInSec);
 		return jwt;
 	}
 	
