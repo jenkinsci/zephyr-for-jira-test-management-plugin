@@ -24,7 +24,8 @@
   
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jenkins.version>1.651</jenkins.version>
+    <jenkins.version>2.5</jenkins.version>
+    <maven.javadoc.skip>true</maven.javadoc.skip>
   </properties>
 
   <build>
@@ -35,7 +36,7 @@
           <artifactId>maven-pmd-plugin</artifactId>
           <version>2.7.1</version>
           <configuration>
-            <targetJdk>1.7</targetJdk>
+            <targetJdk>1.8</targetJdk>
           </configuration>
         </plugin>
         <plugin>
@@ -43,8 +44,8 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>2.5.1</version>
           <configuration>
-            <source>1.7</source>
-            <target>1.7</target>
+            <source>1.8</source>
+            <target>1.8</target>
             <debug>true</debug>
           </configuration>
         </plugin>
