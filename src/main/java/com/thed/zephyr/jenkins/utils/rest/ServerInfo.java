@@ -177,7 +177,28 @@ public class ServerInfo {
 		int statusCode = response.getStatusLine().getStatusCode();
 
 		if (statusCode == 401) {
-			statusMap.put(false, "UnAuthorized");
+			
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+				if (string.startsWith("{") && string.endsWith("}") && string.contains("Zephyr")) {
+					statusMap.put(true, "success");
+				}
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+//			if (string != null) {
+//				statusMap.put(false, string);
+//			} else {
+//				statusMap.put(false, "UnAuthorized");
+//			}
+
+			statusMap.put(false, "UnAuthorized. Please ensure accesskey & secretkey are valid.");
+			
 		} else if (statusCode == 404) {
 			statusMap.put(false, "Invalid Zephyr for JIRA Cloud URL");
 		} else if (statusCode == 200) {
@@ -211,7 +232,7 @@ public class ServerInfo {
 		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
-		int expirationInSec = 360;
+		int expirationInSec = 1800;
 		String jwt = jwtGenerator.generateJWT(requestMethod, uri, expirationInSec);
 		return jwt;
 	}

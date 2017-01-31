@@ -68,8 +68,8 @@ public class Cycle implements RestBase {
 			jObject.put("name", cycleName);
 			jObject.put("projectId", zephyrData.getZephyrProjectId());
 			jObject.put("versionId", zephyrData.getVersionId());
-			jObject.put("startDate", startDate);
-			jObject.put("endDate", endDate);
+			jObject.put("startDate", date.getTime());
+			jObject.put("endDate", gCal.getTimeInMillis());
 			
 			StringEntity se = new StringEntity(jObject.toString(), "utf-8");
 			
@@ -340,7 +340,9 @@ public class Cycle implements RestBase {
 
 		TestCaseUtil.assignTestsZFJC(zephyrData, jsonObject);
 		
-		Map<String, String> fetchExecutionIdsZFJC = TestCaseUtil.fetchExecutionIdsZFJC(zephyrData, jsonObject);
+		Map<String, String> fetchExecutionIdsZFJC = new HashMap<String, String>();
+		
+				TestCaseUtil.fetchExecutionIdsZFJC(zephyrData, jsonObject, fetchExecutionIdsZFJC, 0);
 		
 		System.out.println("fetchExecutionIdsZFJC : " + fetchExecutionIdsZFJC);
 		
@@ -381,8 +383,8 @@ public class Cycle implements RestBase {
 			jObject.put("name", cycleName);
 			jObject.put("projectId", zephyrData.getZephyrProjectId());
 			jObject.put("versionId", zephyrData.getVersionId());
-			jObject.put("startDate", startDate);
-			jObject.put("endDate", endDate);
+			jObject.put("startDate", date.getTime());
+			jObject.put("endDate", gCal.getTimeInMillis());
 			
 			StringEntity se = new StringEntity(jObject.toString(), "utf-8");
 			
@@ -423,7 +425,25 @@ public class Cycle implements RestBase {
 			}
 			
 			
-		} else if(statusCode == 405) {
+		} else	if (statusCode == 401) {
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+			try {
+				throw new ClientProtocolException("Unauthorized. Please check your accessKey and secretKey are valid"
+						+ statusCode);
+			} catch (ClientProtocolException e) {
+				e.printStackTrace();
+			}
+
+		}	else if(statusCode == 405) {
 
 			try {
 				throw new ClientProtocolException("ZAPI plugin license is invalid"

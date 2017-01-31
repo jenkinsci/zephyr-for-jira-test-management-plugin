@@ -24,7 +24,7 @@
   
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <jenkins.version>2.5</jenkins.version>
+    <jenkins.version>2.32.1</jenkins.version>
     <maven.javadoc.skip>true</maven.javadoc.skip>
   </properties>
 

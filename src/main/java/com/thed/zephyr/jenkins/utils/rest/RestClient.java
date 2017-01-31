@@ -14,6 +14,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContextBuilder;
@@ -97,12 +98,18 @@ public class RestClient {
 	}
 
 	private void createHttpClient() {
+		int connectTimeout = 10;
+		int dataWaitTimeout = 3600;
+		RequestConfig config = RequestConfig.custom()
+		  .setConnectTimeout(dataWaitTimeout * 1000)
+		  .setConnectionRequestTimeout(dataWaitTimeout * 1000)
+		  .setSocketTimeout(dataWaitTimeout * 1000).build();
 		try {
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
 			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
 					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf).build();
+			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf)/*.setDefaultRequestConfig(config)*/.build();
 		} catch (KeyManagementException e1) {
 			e1.printStackTrace();
 		} catch (NoSuchAlgorithmException e1) {
