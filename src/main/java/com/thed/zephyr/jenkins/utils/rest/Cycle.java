@@ -1,7 +1,6 @@
 package com.thed.zephyr.jenkins.utils.rest;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -23,11 +22,8 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.springframework.beans.propertyeditors.URLEditor;
 
 import com.thed.zephyr.jenkins.model.ZephyrConfigModel;
-
-import views.html.ac.internal.main;
 
 public class Cycle implements RestBase {
 
