@@ -17,6 +17,8 @@ public class ZephyrConfigModel {
 	private RestClient restClient;
 	private boolean zfjClud;
 	private String cycleIdZfjCloud;
+	private int builNumber;
+
 
 	public long getTestIssueTypeId() {
 		return testIssueTypeId;
@@ -104,6 +106,14 @@ public class ZephyrConfigModel {
 
 	public void setCycleIdZfjCloud(String cycleIdZfjCloud) {
 		this.cycleIdZfjCloud = cycleIdZfjCloud;
+	}
+
+	public int getBuilNumber() {
+		return builNumber;
+	}
+
+	public void setBuilNumber(int builNumber) {
+		this.builNumber = builNumber;
 	}
 
 }

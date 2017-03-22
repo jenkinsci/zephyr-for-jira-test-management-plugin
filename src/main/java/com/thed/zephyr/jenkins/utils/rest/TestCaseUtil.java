@@ -31,8 +31,8 @@ import com.thed.zephyr.jenkins.model.ZephyrConfigModel;
 public class TestCaseUtil implements RestBase {
 	
     public static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
-    private static final int MAX_BULK_OPERATION_COUNT = 25;
-    private static final int MAX_BULK_ISSUE_CREATE_COUNT = 25;
+    private static final int MAX_BULK_OPERATION_COUNT = 50;
+    private static final int MAX_BULK_ISSUE_CREATE_COUNT = 50;
     private static final int MAX_BULK_ISSUE_SEARCH_COUNT = 250;
     
     private static final int MAX_ALLOWED_EXECUTION_ID_FETCH = 50;

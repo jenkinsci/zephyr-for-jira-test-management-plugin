@@ -86,7 +86,9 @@ public class ZfjReporter extends Notifier {
 			return false;
 		}
 
+		int number = build.getRootBuild().getNumber();
 		ZephyrConfigModel zephyrConfig = initializeZephyrData();
+		zephyrConfig.setBuilNumber(number);
 
         	boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
         	
