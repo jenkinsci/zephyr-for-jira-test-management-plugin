@@ -14,6 +14,7 @@ import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.AuthCache;
 import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLContextBuilder;
@@ -33,7 +34,23 @@ public class RestClient {
 	private String url;
 	private String userName;
 	private String password;
-	
+
+	private String zephyrCloudURL;
+	private String accessKey;
+	private String secretKey;
+
+	public RestClient(String url, String userName, String password, String zephyrCloudURL, String accessKey, String secretKey) {
+		this(url, userName, password);
+		
+		this.url = url;
+		this.userName = userName;
+		this.password = password;
+		this.zephyrCloudURL = zephyrCloudURL;
+		this.accessKey = accessKey;
+		this.secretKey = secretKey;
+
+	}
+
 	public RestClient(String url, String userName, String password) {
 		super();
 
@@ -49,8 +66,8 @@ public class RestClient {
 		this(zephyrServer.getServerAddress(), zephyrServer.getUsername(), zephyrServer.getPassword());
 	}
 
-	public void destroy(){
-		if(httpclient != null){
+	public void destroy() {
+		if (httpclient != null) {
 			try {
 				httpclient.close();
 			} catch (IOException e) {
@@ -59,16 +76,13 @@ public class RestClient {
 		}
 	}
 
-	private HttpClientContext createClientContext(
-			String hostAddressWithProtocol, String userName, String password) {
+	private HttpClientContext createClientContext(String hostAddressWithProtocol, String userName, String password) {
 		URL url;
 		try {
 			url = new URL(hostAddressWithProtocol);
-			HttpHost targetHost = new HttpHost(url.getHost(), url.getPort(),
-					url.getProtocol());
+			HttpHost targetHost = new HttpHost(url.getHost(), url.getPort(), url.getProtocol());
 			CredentialsProvider credsProvider = new BasicCredentialsProvider();
-			credsProvider.setCredentials(AuthScope.ANY,
-					new UsernamePasswordCredentials(userName, password));
+			credsProvider.setCredentials(AuthScope.ANY, new UsernamePasswordCredentials(userName, password));
 
 			AuthCache authCache = new BasicAuthCache();
 			authCache.put(targetHost, new BasicScheme());
@@ -84,14 +98,18 @@ public class RestClient {
 	}
 
 	private void createHttpClient() {
+		int connectTimeout = 10;
+		int dataWaitTimeout = 3600;
+		RequestConfig config = RequestConfig.custom()
+		  .setConnectTimeout(dataWaitTimeout * 1000)
+		  .setConnectionRequestTimeout(dataWaitTimeout * 1000)
+		  .setSocketTimeout(dataWaitTimeout * 1000).build();
 		try {
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-					builder.build(),
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(builder.build(),
 					SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf)
-					.build();
+			httpclient = HttpClients.custom().setSSLSocketFactory(sslsf)/*.setDefaultRequestConfig(config)*/.build();
 		} catch (KeyManagementException e1) {
 			e1.printStackTrace();
 		} catch (NoSuchAlgorithmException e1) {
@@ -119,6 +137,18 @@ public class RestClient {
 
 	public String getPassword() {
 		return password;
+	}
+
+	public String getZephyrCloudURL() {
+		return zephyrCloudURL;
+	}
+
+	public String getAccessKey() {
+		return accessKey;
+	}
+
+	public String getSecretKey() {
+		return secretKey;
 	}
 
 }

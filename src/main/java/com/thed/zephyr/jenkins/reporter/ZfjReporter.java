@@ -34,6 +34,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 import com.thed.zephyr.jenkins.model.TestCaseResultModel;
+import com.thed.zephyr.jenkins.model.ZephyrCloudInstance;
 import com.thed.zephyr.jenkins.model.ZephyrConfigModel;
 import com.thed.zephyr.jenkins.model.ZephyrInstance;
 import com.thed.zephyr.jenkins.utils.rest.Project;
@@ -193,7 +194,7 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		ZephyrConfigModel zephyrConfig = new ZephyrConfigModel();
 		
 		String hostName = StringUtils.removeEnd(serverAddress, "/");
-		fetchCredentials(zephyrConfig, hostName);
+		prepareRestClient(zephyrConfig, hostName);
 	
 		zephyrConfig.setCycleDuration(cycleDuration);
 		determineProjectID(zephyrConfig);
@@ -206,23 +207,55 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		return zephyrConfig;
 	}
 
-	private void fetchCredentials(ZephyrConfigModel zephyrConfig, String url) {
-		List<ZephyrInstance> jiraServers = getDescriptor().getJiraInstances();
+	private void prepareRestClient(ZephyrConfigModel zephyrConfig, String url) {
+		List<ZephyrInstance> jiraInstances = getDescriptor().getJiraInstances();
+		List<ZephyrCloudInstance> jiraCloudInstances = getDescriptor().getJiraCloudInstances();
 
-		for (ZephyrInstance jiraServer : jiraServers) {
-			if (StringUtils.isNotBlank(jiraServer.getServerAddress()) && jiraServer.getServerAddress().trim().equals(serverAddress)) {
-				String userName = jiraServer.getUsername();
-				String password = jiraServer.getPassword();
-				
-				RestClient restClient = new RestClient(url, userName, password);
-				zephyrConfig.setRestClient(restClient);
-				
-				break;
+		String tempUserName = null;
+		String tempPassword = null;
+		RestClient restClient = null;
+		if (serverAddress.contains(ATLASSIAN_NET)) {
+			for (ZephyrCloudInstance zephyrCloudInstance: jiraCloudInstances) {
+	    		if(zephyrCloudInstance.getJiraCloudAddress().trim().equals(serverAddress)) {
+	    			String jiraCloudUserName = zephyrCloudInstance.getJiraCloudUserName();
+	    			String jiraCloudPassword = zephyrCloudInstance.getJiraCloudPassword();
+	    			String zephyrCloudAddress = zephyrCloudInstance.getZephyrCloudAddress();
+	    			String zephyrCloudAccessKey = zephyrCloudInstance.getZephyrCloudAccessKey();
+	    			String zephyrCloudSecretKey = zephyrCloudInstance.getZephyrCloudSecretKey();
+	    			restClient = new RestClient(serverAddress, jiraCloudUserName, jiraCloudPassword, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
+	    			zephyrConfig.setZfjClud(true);
+	    			break;
+
+	    		}
+	    	}
+		}	else {
+			for (ZephyrInstance z: jiraInstances) {
+				if(z.getServerAddress().trim().equals(serverAddress)) {
+					tempUserName = z.getUsername();
+					tempPassword = z.getPassword();
+					restClient = new RestClient(serverAddress, tempUserName, tempPassword);
+	    			zephyrConfig.setZfjClud(false);
+					break;
+				}
 			}
 		}
+		zephyrConfig.setRestClient(restClient);
 	}
 
 	private void determineCycleID(ZephyrConfigModel zephyrConfig) {
+
+		if(zephyrConfig.isZfjClud()) {
+
+			if (cycleKey.equalsIgnoreCase(NEW_CYCLE_KEY)) {
+				zephyrConfig.setCycleId(NEW_CYCLE_KEY_IDENTIFIER);
+				zephyrConfig.setCycleIdZfjCloud(NEW_CYCLE_KEY_IDENTIFIER+"");
+				return;
+			}
+
+			zephyrConfig.setCycleName(cycleKey);
+			zephyrConfig.setCycleIdZfjCloud(cycleKey);
+			return;
+		}
 		if (cycleKey.equalsIgnoreCase(NEW_CYCLE_KEY)) {
 			zephyrConfig.setCycleId(NEW_CYCLE_KEY_IDENTIFIER);
 			return;
@@ -332,16 +365,20 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
     }
 
     private boolean perform(final Run build) {
+
+
         if (!validateBuildConfig()) {
             logger.println("Cannot Proceed. Please verify the job configuration");
             return false;
         }
 
+        int number = build.getRootBuild().getNumber();
         ZephyrConfigModel zephyrConfig = initializeZephyrData();
+        zephyrConfig.setBuilNumber(number);
 
         boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
 
-        if (!prepareZephyrTests) {
+        if(!prepareZephyrTests) {
             logger.println("Error parsing surefire reports.");
             logger.println("Please ensure \"Publish JUnit test result report is added\" as a post build action");
             return false;
