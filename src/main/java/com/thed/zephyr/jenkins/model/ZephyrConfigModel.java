@@ -15,6 +15,9 @@ public class ZephyrConfigModel {
 	private String cycleName;
 	private String cycleDuration;
 	private RestClient restClient;
+	private boolean zfjClud;
+	private String cycleIdZfjCloud;
+	private int builNumber;
 
 
 	public long getTestIssueTypeId() {
@@ -87,6 +90,30 @@ public class ZephyrConfigModel {
 
 	public void setVersionId(Long versionId) {
 		this.versionId = versionId;
+	}
+
+	public boolean isZfjClud() {
+		return zfjClud;
+	}
+
+	public void setZfjClud(boolean zfjClud) {
+		this.zfjClud = zfjClud;
+	}
+
+	public String getCycleIdZfjCloud() {
+		return cycleIdZfjCloud;
+	}
+
+	public void setCycleIdZfjCloud(String cycleIdZfjCloud) {
+		this.cycleIdZfjCloud = cycleIdZfjCloud;
+	}
+
+	public int getBuilNumber() {
+		return builNumber;
+	}
+
+	public void setBuilNumber(int builNumber) {
+		this.builNumber = builNumber;
 	}
 
 }

@@ -1,6 +1,10 @@
 package com.thed.zephyr.jenkins.utils.rest;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -11,10 +15,14 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import com.thed.zephyr.cloud.rest.ZFJCloudRestClient;
+import com.thed.zephyr.cloud.rest.client.JwtGenerator;
+
 public class ServerInfo {
 	
 	private static String URL_GET_PROJECTS = "{SERVER}/rest/api/2/project?expand";
 	private static String URL_GET_ISSUETYPES = "{SERVER}/rest/api/2/issuetype";
+	private static String URL_ZCLOUD_GET_GENERAL_INFO = "{SERVER}/public/rest/api/1.0/config/generalinformation";
 	private static String TEST_ISSSUETYPE_NAME = "Test";
 	private static long ISSUE_TYPE_ID = 10100L;
 	
@@ -43,7 +51,7 @@ public class ServerInfo {
 			String string = null;
 			try {
 				string = EntityUtils.toString(entity);
-				if (string.contains("[]")) return true;
+				if (string.startsWith("[") && string.endsWith("]") ) return true;
 			} catch (ParseException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -144,6 +152,89 @@ public class ServerInfo {
 		return status;
 	
 	
+	}
+	public static Map<Boolean, String> findServerAddressIsValidZephyrCloudURL(RestClient restClient) {
+		Map<Boolean, String> statusMap = new HashMap<Boolean, String>();
+		statusMap.put(false, "Error Validating Zephyr for JIRA Cloud and ZAPI Cloud");
+
+		HttpResponse response = null;
+		try {
+			String constructedURL = URL_ZCLOUD_GET_GENERAL_INFO.replace("{SERVER}", restClient.getZephyrCloudURL());
+			String jwtHeaderValue = generateJWT(restClient, constructedURL, "GET");
+			HttpGet getRequest = new HttpGet(constructedURL);
+			
+			getRequest.addHeader("Content-Type", "application/json");
+			getRequest.addHeader("Authorization", jwtHeaderValue);
+			getRequest.addHeader("zapiAccessKey", restClient.getAccessKey());
+
+			response = restClient.getHttpclient().execute(getRequest);
+		} catch (ClientProtocolException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		int statusCode = response.getStatusLine().getStatusCode();
+
+		if (statusCode == 401) {
+			
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+				if (string.startsWith("{") && string.endsWith("}") && string.contains("Zephyr")) {
+					statusMap.put(true, "success");
+				}
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+//			if (string != null) {
+//				statusMap.put(false, string);
+//			} else {
+//				statusMap.put(false, "UnAuthorized");
+//			}
+
+			statusMap.put(false, "UnAuthorized. Please ensure accesskey & secretkey are valid.");
+			
+		} else if (statusCode == 404) {
+			statusMap.put(false, "Invalid Zephyr for JIRA Cloud URL");
+		} else if (statusCode == 200) {
+			
+			HttpEntity entity = response.getEntity();
+			String string = null;
+			try {
+				string = EntityUtils.toString(entity);
+				if (string.startsWith("{") && string.endsWith("}") && string.contains("Zephyr")) {
+					statusMap.put(true, "success");
+				}
+			} catch (ParseException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
+		}
+		
+		return statusMap;
+	}
+	
+	static String generateJWT(RestClient restClient, String constructedURL, String requestMethod) {
+		ZFJCloudRestClient client = ZFJCloudRestClient.restBuilder(restClient.getZephyrCloudURL(), restClient.getAccessKey(), restClient.getSecretKey(), restClient.getUserName())
+				.build();
+		JwtGenerator jwtGenerator = client.getJwtGenerator();
+
+		URI uri = null;
+		try {
+			uri = new URI(constructedURL);
+		} catch (URISyntaxException e) {
+			e.printStackTrace();
+		}
+		int expirationInSec = 1800;
+		String jwt = jwtGenerator.generateJWT(requestMethod, uri, expirationInSec);
+		return jwt;
 	}
 	
 }

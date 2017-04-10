@@ -9,6 +9,7 @@ public class ZfjConstants {
     static final String ADD_ZEPHYR_GLOBAL_CONFIG = "Please Add Zephyr Server in the Global config";
     static final String NEW_CYCLE_KEY = "CreateNewCycle";
 	static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
+	static final String ATLASSIAN_NET = "atlassian.net";
 
 
 }

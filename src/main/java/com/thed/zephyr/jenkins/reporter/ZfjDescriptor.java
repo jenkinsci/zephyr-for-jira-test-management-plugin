@@ -6,6 +6,7 @@ import static com.thed.zephyr.jenkins.reporter.ZfjConstants.CYCLE_DURATION_30_DA
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.CYCLE_DURATION_7_DAYS;
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.NAME_POST_BUILD_ACTION;
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.NEW_CYCLE_KEY;
+import static com.thed.zephyr.jenkins.reporter.ZfjConstants.ATLASSIAN_NET;
 import hudson.Extension;
 import hudson.model.AbstractProject;
 import hudson.tasks.BuildStepDescriptor;
@@ -27,6 +28,7 @@ import org.apache.commons.lang.StringUtils;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
 
+import com.thed.zephyr.jenkins.model.ZephyrCloudInstance;
 import com.thed.zephyr.jenkins.model.ZephyrInstance;
 import com.thed.zephyr.jenkins.utils.ConfigurationValidator;
 import com.thed.zephyr.jenkins.utils.URLValidator;
@@ -40,6 +42,8 @@ import com.thed.zephyr.jenkins.utils.rest.Version;
 public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 
 	private List<ZephyrInstance> jiraInstances;
+	private List<ZephyrCloudInstance> jiraCloudInstances;
+	private String[] config = new String[5];
 
 	public ZfjDescriptor() {
 		super(ZfjReporter.class);
@@ -63,9 +67,13 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 			throws FormException {
 		req.bindParameters(this);
 		this.jiraInstances = new ArrayList<ZephyrInstance>();
-		Object object = formData.get("jiraInstances");
-		if(object instanceof JSONArray) {
-			JSONArray jArr = (JSONArray) object;
+		this.jiraCloudInstances = new ArrayList<ZephyrCloudInstance>();
+		
+		Object jiraInstancesObject = formData.getJSONObject("dynamic").get("jiraInstances");
+		Object jiraCloudInstancesObject = formData.getJSONObject("dynamic").get("jiraCloudInstances");
+		
+		if(jiraInstancesObject instanceof JSONArray) {
+			JSONArray jArr = (JSONArray) jiraInstancesObject;
 			for (Iterator iterator = jArr.iterator(); iterator.hasNext();) {
 				JSONObject jObj = (JSONObject) iterator.next();
 				ZephyrInstance zephyrInstance = new ZephyrInstance();
@@ -92,8 +100,8 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 			
 			
 			
-		} else if (object instanceof JSONObject) {
-			JSONObject jObj = formData.getJSONObject("jiraInstances");
+		} else if (jiraInstancesObject instanceof JSONObject) {
+			JSONObject jObj = formData.getJSONObject("dynamic").getJSONObject("jiraInstances");
 			ZephyrInstance zephyrInstance = new ZephyrInstance();
 			
 			String server = jObj.getString("serverAddress").trim();
@@ -114,6 +122,61 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 				this.jiraInstances.add(zephyrInstance);
 			}			
 		}
+		
+		
+		
+		if(jiraCloudInstancesObject instanceof JSONArray) {
+			JSONArray jArr = (JSONArray) jiraCloudInstancesObject;
+			for (Iterator iterator = jArr.iterator(); iterator.hasNext();) {
+				JSONObject jObj = (JSONObject) iterator.next();
+				ZephyrCloudInstance zephyrCloudInstance = new ZephyrCloudInstance();
+				
+				String jiraCloudAddress = jObj.getString("jiraCloudAddress").trim();
+				String zephyrCloudAddress = jObj.getString("zephyrCloudAddress").trim();
+				String jiraCloudUserName = jObj.getString("jiraCloudUserName").trim();
+				String jiraCloudPassword = jObj.getString("jiraCloudPassword").trim();
+				String zephyrCloudAccessKey = jObj.getString("zephyrCloudAccessKey").trim();
+				String zephyrCloudSecretKey = jObj.getString("zephyrCloudSecretKey").trim();
+
+				jiraCloudAddress = StringUtils.removeEnd(jiraCloudAddress, "/");
+				zephyrCloudAddress = StringUtils.removeEnd(zephyrCloudAddress, "/");
+
+				zephyrCloudInstance.setJiraCloudAddress(jiraCloudAddress);
+				zephyrCloudInstance.setZephyrCloudAddress(zephyrCloudAddress);
+				zephyrCloudInstance.setJiraCloudUserName(jiraCloudUserName);
+				zephyrCloudInstance.setJiraCloudPassword(jiraCloudPassword);
+				zephyrCloudInstance.setZephyrCloudAccessKey(zephyrCloudAccessKey);
+				zephyrCloudInstance.setZephyrCloudSecretKey(zephyrCloudSecretKey);
+				
+					this.jiraCloudInstances.add(zephyrCloudInstance);
+			}
+			
+			
+			
+		} else if (jiraCloudInstancesObject instanceof JSONObject) {
+			JSONObject jObj = formData.getJSONObject("dynamic").getJSONObject("jiraCloudInstances");
+
+			ZephyrCloudInstance zephyrCloudInstance = new ZephyrCloudInstance();
+			
+			String jiraCloudAddress = jObj.getString("jiraCloudAddress").trim();
+			String zephyrCloudAddress = jObj.getString("zephyrCloudAddress").trim();
+			String jiraCloudUserName = jObj.getString("jiraCloudUserName").trim();
+			String jiraCloudPassword = jObj.getString("jiraCloudPassword").trim();
+			String zephyrCloudAccessKey = jObj.getString("zephyrCloudAccessKey").trim();
+			String zephyrCloudSecretKey = jObj.getString("zephyrCloudSecretKey").trim();
+
+			jiraCloudAddress = StringUtils.removeEnd(jiraCloudAddress, "/");
+			zephyrCloudAddress = StringUtils.removeEnd(zephyrCloudAddress, "/");
+
+			zephyrCloudInstance.setJiraCloudAddress(jiraCloudAddress);
+			zephyrCloudInstance.setZephyrCloudAddress(zephyrCloudAddress);
+			zephyrCloudInstance.setJiraCloudUserName(jiraCloudUserName);
+			zephyrCloudInstance.setJiraCloudPassword(jiraCloudPassword);
+			zephyrCloudInstance.setZephyrCloudAccessKey(zephyrCloudAccessKey);
+			zephyrCloudInstance.setZephyrCloudSecretKey(zephyrCloudSecretKey);
+			
+				this.jiraCloudInstances.add(zephyrCloudInstance);			
+		}
 		save();
 		return super.configure(req, formData);
 	}
@@ -125,13 +188,13 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
     }
 
 
-    public FormValidation doCheckProjectKey(@QueryParameter String value) {
-    	if (value.isEmpty()) {
-    		return FormValidation.error("You must provide a project key.");
-    	} else {
-    		return FormValidation.ok();
-    	}
-    }
+//    public FormValidation doCheckProjectKey(@QueryParameter String value) {
+//    	if (value.isEmpty()) {
+//    		return FormValidation.error("You must provide a project key.");
+//    	} else {
+//    		return FormValidation.ok();
+//    	}
+//    }
 
 
 	public FormValidation doTestConnection(
@@ -174,39 +237,253 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 		restClient.destroy();
 		return FormValidation.ok("Connection to JIRA has been validated");
 	}
+	
+	
+	public FormValidation doTestZephyrCloudConnection(
+			@QueryParameter String jiraCloudAddress,
+			@QueryParameter String zephyrCloudAddress,
+			@QueryParameter String jiraCloudUserName,
+			@QueryParameter String jiraCloudPassword,
+			@QueryParameter String zephyrCloudAccessKey,
+			@QueryParameter String zephyrCloudSecretKey) {
+		
+		jiraCloudAddress = StringUtils.removeEnd(jiraCloudAddress, "/");
+		zephyrCloudAddress = StringUtils.removeEnd(zephyrCloudAddress, "/");
+		
+		if (StringUtils.isBlank(jiraCloudAddress)) {
+			return FormValidation.error("Please enter the JIRA Cloud URL");
+		}
 
+		if (StringUtils.isBlank(zephyrCloudAddress)) {
+			return FormValidation.error("Please enter the Zephyr for JIRA Cloud base URL");
+		}
+
+		if (StringUtils.isBlank(jiraCloudUserName)) {
+			return FormValidation.error("Please enter the JIRA Cloud user name");
+		}
+		if (StringUtils.isBlank(jiraCloudPassword)) {
+			return FormValidation.error("Please enter the JIRA Cloud user password");
+		}
+		if (StringUtils.isBlank(zephyrCloudAccessKey)) {
+			return FormValidation.error("Please enter the Zephyr for JIRA Cloud access key");
+		}
+		if (StringUtils.isBlank(zephyrCloudSecretKey)) {
+			return FormValidation.error("Please enter the Zephyr for JIRA Cloud secret key");
+		}
+
+		if (!(jiraCloudAddress.trim().startsWith("https://") || jiraCloudAddress.trim().startsWith("http://"))) {
+			return FormValidation.error("Incorrect server address format (JIRA Cloud)");
+		}
+
+		if (!(zephyrCloudAddress.trim().startsWith("https://") || zephyrCloudAddress.trim().startsWith("http://"))) {
+			return FormValidation.error("Incorrect server address format (Zephyr for JIRA Cloud)");
+		}
+
+		String jiraCloudAddr = URLValidator.validateURL(jiraCloudAddress);
+		
+		if(!jiraCloudAddr.startsWith("http")) {
+			return FormValidation.error(jiraCloudAddr);
+		}
+		
+		String zephyrCloudAddr = URLValidator.validateURL(zephyrCloudAddress);
+		
+		if(!zephyrCloudAddr.startsWith("http")) {
+			return FormValidation.error(zephyrCloudAddr);
+		}
+
+		RestClient restClient = new RestClient(jiraCloudAddr, jiraCloudUserName, jiraCloudPassword);
+		
+		if (!ServerInfo.findServerAddressIsValidZephyrURL(restClient)) {
+			return FormValidation.error("This is not a valid Jira Server");
+		}
+		
+		if (!ServerInfo.validateCredentials(restClient)) {
+			return FormValidation.error("Invalid user credentials");
+		}
+		restClient.destroy();
+		
+		RestClient restClient2  = new RestClient(jiraCloudAddress, jiraCloudUserName, jiraCloudPassword, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
+
+		
+		Map<Boolean, String> findServerAddressIsValidZephyrCloudURL = ServerInfo.findServerAddressIsValidZephyrCloudURL(restClient2);
+		if (!findServerAddressIsValidZephyrCloudURL.containsKey(true)) {
+			return FormValidation.error(findServerAddressIsValidZephyrCloudURL.get(false));
+		}
+		
+		return FormValidation.ok("Validated sucessfully !");
+	}
 
     public ListBoxModel doFillServerAddressItems(@QueryParameter String serverAddress) {
     	
-        ListBoxModel m = new ListBoxModel();
+        ListBoxModel m = fetchServerList(serverAddress);
+        return m;
+    }
+
+	public ListBoxModel doFillProjectKeyItems(@QueryParameter String serverAddress) {
+		
+		
+		if (StringUtils.isBlank(serverAddress)) {
+	        ListBoxModel mi = fetchServerList(serverAddress);
+			serverAddress = mi.get(0).value;
+		}
+	
+		ListBoxModel m = new ListBoxModel();
+		if (serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
+				|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
+			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
+			return m;
+		}
+	
+		fetchProjectList(serverAddress, m);
+	    return m;
+	}
+
+	public ListBoxModel doFillVersionKeyItems(@QueryParameter String projectKey, @QueryParameter String serverAddress) {
+		
+		if (StringUtils.isBlank(serverAddress)) {
+	        ListBoxModel mi = fetchServerList(serverAddress);
+			serverAddress = mi.get(0).value;
+		}
+		
+		if (StringUtils.isBlank(projectKey)) {
+			
+			ListBoxModel mp = new ListBoxModel();
+			if (serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
+					|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
+				mp.add(ADD_ZEPHYR_GLOBAL_CONFIG);
+			} else {
+				fetchProjectList(serverAddress, mp);
+			}
+	
+	
+			projectKey = mp.get(0).value;
+		}
+	
+	
+		ListBoxModel m = new ListBoxModel();
+	
+		if (StringUtils.isBlank(projectKey)
+				|| projectKey.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
+				|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
+			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
+			return m;
+		}
+	
+		fetchVersionList(projectKey, serverAddress, m);
+	    return m;
+	
+	}
+
+	public ListBoxModel doFillCycleKeyItems(@QueryParameter String versionKey, @QueryParameter String serverAddress, @QueryParameter String projectKey) {
+		ListBoxModel m = new ListBoxModel();
+	
+		if (StringUtils.isBlank(serverAddress)) {
+	        ListBoxModel ms = fetchServerList(serverAddress);
+			serverAddress = ms.get(0).value;
+		}
+		
+		if (StringUtils.isBlank(projectKey)) {
+			
+			ListBoxModel mp = new ListBoxModel();
+			if (serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
+					|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
+				mp.add(ADD_ZEPHYR_GLOBAL_CONFIG);
+			} else {
+				fetchProjectList(serverAddress, mp);
+			}
+	
+	
+			projectKey = mp.get(0).value;
+		}
+	
+		if (StringUtils.isBlank(versionKey)) {
+			
+	    	ListBoxModel mv = new ListBoxModel();
+	
+			if (StringUtils.isBlank(projectKey)
+					|| projectKey.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
+					|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
+				mv.add(ADD_ZEPHYR_GLOBAL_CONFIG);
+			} else {
+				fetchVersionList(projectKey, serverAddress, mv);
+			}
+	
+			versionKey = mv.get(0).value;
+		}
+	
+		if (StringUtils.isBlank(versionKey)
+				|| versionKey.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
+				|| (this.jiraInstances.size() == 0 && this.jiraCloudInstances.size() == 0)) {
+			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
+			return m;
+		}
+		
+		long versionId = Long.parseLong(versionKey);
+	
+		RestClient restClient = getRestclient(serverAddress);
+		
+		Map<String, String> cycles = null;
+		if (serverAddress.contains(ATLASSIAN_NET)) {
+			cycles = Cycle.getAllCyclesByVersionIdZFJC(versionId, restClient, projectKey);
+		} else {
+			cycles = Cycle.getAllCyclesByVersionId(versionId, restClient, projectKey);
+		}
+		
+		Set<Entry<String, String>> cycleEntrySet = cycles.entrySet();
+	
+		for (Iterator<Entry<String, String>> iterator = cycleEntrySet.iterator(); iterator.hasNext();) {
+			Entry<String, String> entry = iterator.next();
+			m.add(entry.getValue(), entry.getKey());
+		}
+		
+		m.add("New Cycle", NEW_CYCLE_KEY);
+		restClient.destroy();
+	    return m;
+	}
+
+	public ListBoxModel doFillCycleDurationItems(@QueryParameter String versionKey, @QueryParameter String serverAddress) {
+		ListBoxModel m = new ListBoxModel();
+		m.add(CYCLE_DURATION_30_DAYS);
+		m.add(CYCLE_DURATION_7_DAYS);
+		m.add(CYCLE_DURATION_1_DAY);
+		return m;
+	}
+
+	private ListBoxModel fetchServerList(String serverAddress) {
+		ListBoxModel m = new ListBoxModel();
         
 		if (this.jiraInstances.size() > 0) {
 			for (ZephyrInstance s : this.jiraInstances) {
 				m.add(s.getServerAddress());
+				
+				if (StringUtils.isBlank(config[0])) {
+					config[0] = s.getServerAddress();
+				}
 			}
-		} else if (StringUtils.isBlank(serverAddress)
+		}	else if(this.jiraCloudInstances.size() > 0) {
+			for (ZephyrCloudInstance zephyrCloudInstance : jiraCloudInstances) {
+				m.add(zephyrCloudInstance.getJiraCloudAddress());
+				if (StringUtils.isBlank(config[0])) {
+					config[0] = zephyrCloudInstance.getJiraCloudAddress();
+				}
+
+			}
+			
+		}	else if (StringUtils.isBlank(serverAddress)
 				|| serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)) {
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 		} else {
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 		}
-        return m;
-    }
+		return m;
+	}
 
 
-    public ListBoxModel doFillProjectKeyItems(@QueryParameter String serverAddress) {
-		ListBoxModel m = new ListBoxModel();
+    private void fetchProjectList(String serverAddress, ListBoxModel m) {
+		RestClient restClient = null;
 		
+		restClient = getRestclient(serverAddress);
 		
-		if (StringUtils.isBlank(serverAddress)
-				|| serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
-				|| (this.jiraInstances.size() == 0)) {
-			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
-			return m;
-		}
-    	
-
-		RestClient restClient = getRestclient(serverAddress);
 		Map<Long, String> projects = Project.getAllProjects(restClient);
 
 		Set<Entry<Long, String>> projectEntrySet = projects.entrySet();
@@ -214,39 +491,18 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 		for (Iterator<Entry<Long, String>> iterator = projectEntrySet.iterator(); iterator.hasNext();) {
 			Entry<Long, String> entry = iterator.next();
 			m.add(entry.getValue(), entry.getKey()+"");
+			
+			if (StringUtils.isBlank(config[1])) {
+				config[1] = entry.getKey()+"";
+			}
+
 		}
 		restClient.destroy();
-        return m;
-    }
-
-
-	private RestClient getRestclient(String serverAddress) {
-		String tempUserName = null;
-		String tempPassword = null;
-		for (ZephyrInstance z: jiraInstances) {
-    		if(z.getServerAddress().trim().equals(serverAddress)) {
-    			tempUserName = z.getUsername();
-    			tempPassword = z.getPassword();
-    		}
-    	}
-			RestClient restClient = new RestClient(serverAddress, tempUserName, tempPassword);
-			
-			return restClient;
 	}
 
 
-    public ListBoxModel doFillVersionKeyItems(@QueryParameter String projectKey, @QueryParameter String serverAddress) {
-    	
-    	ListBoxModel m = new ListBoxModel();
-
-		if (StringUtils.isBlank(projectKey)
-				|| projectKey.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
-				|| (this.jiraInstances.size() == 0)) {
-			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
-			return m;
-		}
-
-    	long parseLong = Long.parseLong(projectKey);
+	private void fetchVersionList(String projectKey, String serverAddress, ListBoxModel m) {
+		long parseLong = Long.parseLong(projectKey);
     	
     	RestClient restClient = getRestclient(serverAddress);
 		Map<Long, String> versions = Version.getVersionsByProjectID(parseLong, restClient);
@@ -256,48 +512,45 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 		for (Iterator<Entry<Long, String>> iterator = versionEntrySet.iterator(); iterator.hasNext();) {
 			Entry<Long, String> entry = iterator.next();
 			m.add(entry.getValue(), entry.getKey()+"");
+			
+			if (StringUtils.isBlank(config[2])) {
+				config[2] = entry.getKey()+"";
+			}
+
 		}
 		restClient.destroy();
-        return m;
-
-    }
+	}
 
 
-    public ListBoxModel doFillCycleKeyItems(@QueryParameter String versionKey, @QueryParameter String serverAddress, @QueryParameter String projectKey) {
-    	ListBoxModel m = new ListBoxModel();
-
-		if (StringUtils.isBlank(versionKey)
-				|| versionKey.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)
-				|| (this.jiraInstances.size() == 0)) {
-			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
-			return m;
+    private RestClient getRestclient(String serverAddress) {
+		String tempUserName = null;
+		String tempPassword = null;
+		RestClient restClient = null;
+		if (serverAddress.contains(ATLASSIAN_NET)) {
+			for (ZephyrCloudInstance zephyrCloudInstance: jiraCloudInstances) {
+	    		if(zephyrCloudInstance.getJiraCloudAddress().trim().equals(serverAddress)) {
+	    			String jiraCloudUserName = zephyrCloudInstance.getJiraCloudUserName();
+	    			String jiraCloudPassword = zephyrCloudInstance.getJiraCloudPassword();
+	    			String zephyrCloudAddress = zephyrCloudInstance.getZephyrCloudAddress();
+	    			String zephyrCloudAccessKey = zephyrCloudInstance.getZephyrCloudAccessKey();
+	    			String zephyrCloudSecretKey = zephyrCloudInstance.getZephyrCloudSecretKey();
+	    			
+	    			restClient = new RestClient(serverAddress, jiraCloudUserName, jiraCloudPassword, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
+	    			
+	    		}
+	    	}
+		}	else {
+			for (ZephyrInstance z: jiraInstances) {
+				if(z.getServerAddress().trim().equals(serverAddress)) {
+					tempUserName = z.getUsername();
+					tempPassword = z.getPassword();
+					restClient = new RestClient(serverAddress, tempUserName, tempPassword);
+				}
+			}
 		}
-    	
-    	long parseLong = Long.parseLong(versionKey);
-
-    	RestClient restClient = getRestclient(serverAddress);
-		Map<Long, String> cycles = Cycle.getAllCyclesByVersionId(parseLong, restClient, projectKey);
-		
-		Set<Entry<Long, String>> cycleEntrySet = cycles.entrySet();
-
-		for (Iterator<Entry<Long, String>> iterator = cycleEntrySet.iterator(); iterator.hasNext();) {
-			Entry<Long, String> entry = iterator.next();
-			m.add(entry.getValue(), entry.getKey()+"");
-		}
-		
-		m.add("New Cycle", NEW_CYCLE_KEY);
-		restClient.destroy();
-        return m;
-    }
-
-
-    public ListBoxModel doFillCycleDurationItems(@QueryParameter String versionKey, @QueryParameter String serverAddress) {
-    	ListBoxModel m = new ListBoxModel();
-    	m.add(CYCLE_DURATION_30_DAYS);
-    	m.add(CYCLE_DURATION_7_DAYS);
-    	m.add(CYCLE_DURATION_1_DAY);
-    	return m;
-    }
+			
+			return restClient;
+	}
 
 	public List<ZephyrInstance> getJiraInstances() {
 		return jiraInstances;
@@ -305,6 +558,14 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 
 	public void setJiraInstances(List<ZephyrInstance> jiraInstances) {
 		this.jiraInstances = jiraInstances;
+	}
+
+	public List<ZephyrCloudInstance> getJiraCloudInstances() {
+		return jiraCloudInstances;
+	}
+
+	public void setJiraCloudInstances(List<ZephyrCloudInstance> jiraCloudInstances) {
+		this.jiraCloudInstances = jiraCloudInstances;
 	}
 
 }
