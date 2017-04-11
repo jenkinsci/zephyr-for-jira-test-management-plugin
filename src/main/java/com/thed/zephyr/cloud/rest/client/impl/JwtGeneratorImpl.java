@@ -32,15 +32,19 @@ import java.net.URISyntaxException;
 import java.net.URLDecoder;
 import java.security.NoSuchAlgorithmException;
 import java.util.*;
+import java.util.logging.Logger;
 
 import static com.atlassian.jwt.JwtConstants.HttpRequests.JWT_AUTH_HEADER_PREFIX;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkNotNull;
+import static java.util.logging.Level.FINEST;
 
 /**
  * Created by aliakseimatsarski on 11/3/16.
  */
 public class JwtGeneratorImpl implements JwtGenerator {
+
+    private static final Logger LOG = Logger.getLogger(JwtGeneratorImpl.class.getCanonicalName());
 
     private ZConfig zConfig;
 
@@ -148,11 +152,13 @@ public class JwtGeneratorImpl implements JwtGenerator {
             final URI uriWithoutProductContext = getUri(uri, zConfig.ZEPHYR_BASE_URL);
 
             jwt = jwtAuthorisationGenerator.generate(HttpMethod.valueOf(requestMethod), uriWithoutProductContext, new HashMap<String, List<String>>(), zConfig.host, zConfig.USER_NAME);
-        } catch (Exception e) {
-        }
-        final String authorizationHeaderValue = jwt.getOrNull();
+            final String authorizationHeaderValue = jwt.getOrNull();
 
-        return authorizationHeaderValue;
+            return authorizationHeaderValue;
+        } catch (Exception e) {
+            LOG.log(FINEST,"ignored exception", e);
+        }
+        return null;
     }
 
     private URI getUri(URI uri, String baseUrlString) throws URISyntaxException {

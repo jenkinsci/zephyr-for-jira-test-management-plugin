@@ -20,7 +20,9 @@ public class ZConfig extends PropertiesConfiguration {
     public String JIRA_SHARED_SECRET;
 
     public String ZEPHYR_BASE_URL;
+    //unused field
     public String APP_KEY;
+    //unused field
     public String SECRET_KEY;
     public String ACCESS_KEY;
     public AcHost host;
@@ -35,12 +37,14 @@ public class ZConfig extends PropertiesConfiguration {
         JIRA_SHARED_SECRET = secretKey;
 
         ZEPHYR_BASE_URL = zephyrBaseUrl;
+        //unread field
         ACCESS_KEY = accessKey;
         USER_NAME = Option.option(userName);
 
         host = new AcHost();
         host.setKey(JIRA_HOST_KEY);
-        host.setBaseUrl(JIRA_BASE_URL);
+        //Uninitialized read of field in constructor
+        //host.setBaseUrl(JIRA_BASE_URL);
         host.setSharedSecret(JIRA_SHARED_SECRET);
 
     }

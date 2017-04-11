@@ -100,6 +100,7 @@ public class RestClient {
 	private void createHttpClient() {
 		int connectTimeout = 10;
 		int dataWaitTimeout = 3600;
+		//Deadstore
 		RequestConfig config = RequestConfig.custom()
 		  .setConnectTimeout(dataWaitTimeout * 1000)
 		  .setConnectionRequestTimeout(dataWaitTimeout * 1000)
