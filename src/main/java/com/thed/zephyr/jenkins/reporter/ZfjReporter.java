@@ -372,7 +372,7 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
             return false;
         }
 
-        int number = build.getRootBuild().getNumber();
+        int number = build.getNumber();
         ZephyrConfigModel zephyrConfig = initializeZephyrData();
         zephyrConfig.setBuilNumber(number);
 
