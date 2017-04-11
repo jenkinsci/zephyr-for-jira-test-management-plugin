@@ -1,18 +1,24 @@
 package com.thed.zephyr.jenkins.reporter;
 
+import hudson.FilePath;
+
 /**
  * @author mohan
  */
 
 import hudson.Launcher;
 import hudson.model.BuildListener;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.model.AbstractBuild;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.junit.SuiteResult;
 import hudson.tasks.junit.TestResultAction;
+import jenkins.tasks.SimpleBuildStep;
 import hudson.tasks.junit.CaseResult;
 
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,7 +44,7 @@ import com.thed.zephyr.jenkins.utils.rest.TestCaseUtil;
 
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.*;
 
-public class ZfjReporter extends Notifier {
+public class ZfjReporter extends Notifier implements SimpleBuildStep{
 
 	public static PrintStream logger;
 
@@ -79,33 +85,10 @@ public class ZfjReporter extends Notifier {
         logger = listener.getLogger();
         logger.printf("%s Examining test results...%n", pInfo);
         logger.printf(String.format("Build result is %s%n", build.getResult().toString()));
-        
-  
-		if (!validateBuildConfig()) {
-			logger.println("Cannot Proceed. Please verify the job configuration");
-			return false;
-		}
-
-		int number = build.getRootBuild().getNumber();
-		ZephyrConfigModel zephyrConfig = initializeZephyrData();
-		zephyrConfig.setBuilNumber(number);
-
-        	boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
-        	
-        	if(!prepareZephyrTests) {
-    			logger.println("Error parsing surefire reports.");
-    			logger.println("Please ensure \"Publish JUnit test result report is added\" as a post build action");
-    			return false;
-        	}
-        	
-			TestCaseUtil.processTestCaseDetails(zephyrConfig);
-
-            zephyrConfig.getRestClient().destroy();
-        logger.printf("%s Done.%n", pInfo);
-        return true;
+		return perform(build);
     }
 
-	private boolean prepareZephyrTests(final AbstractBuild build,
+	private boolean prepareZephyrTests(final Run build,
 			ZephyrConfigModel zephyrConfig) {
 		
 		boolean status = true;
@@ -260,16 +243,16 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 	}
 
 	private void determineCycleID(ZephyrConfigModel zephyrConfig) {
-		
+
 		if(zephyrConfig.isZfjClud()) {
-			
+
 			if (cycleKey.equalsIgnoreCase(NEW_CYCLE_KEY)) {
 				zephyrConfig.setCycleId(NEW_CYCLE_KEY_IDENTIFIER);
 				zephyrConfig.setCycleIdZfjCloud(NEW_CYCLE_KEY_IDENTIFIER+"");
 				return;
 			}
 
-			zephyrConfig.setCycleName(cycleKey);	
+			zephyrConfig.setCycleName(cycleKey);
 			zephyrConfig.setCycleIdZfjCloud(cycleKey);
 			return;
 		}
@@ -372,6 +355,40 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 	public void setCycleDuration(String cycleDuration) {
 		this.cycleDuration = cycleDuration;
 	}
-    
+
+    @Override
+    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
+        logger = listener.getLogger();
+        logger.printf("%s Examining test results...%n", pInfo);
+        logger.printf(String.format("Build result is %s%n", run.getResult().toString()));
+        perform(run);
+    }
+
+    private boolean perform(final Run build) {
+
+
+        if (!validateBuildConfig()) {
+            logger.println("Cannot Proceed. Please verify the job configuration");
+            return false;
+        }
+
+        int number = build.getNumber();
+        ZephyrConfigModel zephyrConfig = initializeZephyrData();
+        zephyrConfig.setBuilNumber(number);
+
+        boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
+
+        if(!prepareZephyrTests) {
+            logger.println("Error parsing surefire reports.");
+            logger.println("Please ensure \"Publish JUnit test result report is added\" as a post build action");
+            return false;
+        }
+
+        TestCaseUtil.processTestCaseDetails(zephyrConfig);
+
+        zephyrConfig.getRestClient().destroy();
+        logger.printf("%s Done.%n", pInfo);
+        return true;
+    }
 }
 
