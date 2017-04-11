@@ -40,7 +40,7 @@ import static com.thed.zephyr.jenkins.reporter.ZfjConstants.*;
 
 public class ZfjReporter extends Notifier {
 
-	public static PrintStream logger;
+	public PrintStream logger;
 
 	private String serverAddress;
 	private String projectKey;
@@ -50,7 +50,7 @@ public class ZfjReporter extends Notifier {
 	private String cycleDuration;
 
 	
-    private static final String PluginName = new String("[ZapiTestResultReporter]");
+    private static final String PluginName = "[ZapiTestResultReporter]";
     private final String pInfo = String.format("%s [INFO]", PluginName);
 
     @DataBoundConstructor
@@ -144,7 +144,7 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 
 		
 		Set<String> keySet = zephyrTestCaseMap.keySet();
-		
+		//Inefficient use of keySet iterator instead of entrySet iterator
 		for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext();) {
 			String testCaseName = iterator.next();
 			Boolean isPassed = zephyrTestCaseMap.get(testCaseName);

@@ -471,8 +471,10 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 			
 		}	else if (StringUtils.isBlank(serverAddress)
 				|| serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)) {
+			//Method uses the same code for two branches
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 		} else {
+			//Method uses the same code for two branches
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 		}
 		return m;

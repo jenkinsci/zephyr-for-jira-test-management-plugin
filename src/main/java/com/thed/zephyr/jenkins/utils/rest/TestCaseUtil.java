@@ -147,8 +147,8 @@ public class TestCaseUtil implements RestBase {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
-		int statusCode1 = issueCreateResponse.getStatusLine().getStatusCode();
+
+		int statusCode1 = issueCreateResponse != null && issueCreateResponse.getStatusLine() != null ? issueCreateResponse.getStatusLine().getStatusCode() : 500;
 
 		if (statusCode1 >= 200 && statusCode1 < 300) {
 			
@@ -196,9 +196,9 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
@@ -267,6 +267,7 @@ public class TestCaseUtil implements RestBase {
 			return;
 		}
 
+		//Deadstore
 		Long cycleId = 0L;
 
 		CloseableHttpResponse response = null;
@@ -287,12 +288,13 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
+				//Deadstore
 				string = EntityUtils.toString(entity);
 			} catch (ParseException e) {
 				e.printStackTrace();
@@ -337,9 +339,9 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
@@ -440,9 +442,9 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
@@ -536,11 +538,13 @@ public class TestCaseUtil implements RestBase {
 			
 			List<Long> passList = new ArrayList<Long>();
 			List<Long> failList = new ArrayList<Long>();
+			//Inefficient use of keySet iterator instead of entrySet iterator
 			for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
 				Entry<Long, Map<String, Boolean>> entry = iterator
 						.next();
 				Map<String, Boolean> value = entry.getValue();
 				Set<String> keySet = value.keySet();
+				//Inefficient use of keySet iterator instead of entrySet iterator
 				for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
 					String issueKey = iterator2.next();
 					
@@ -653,9 +657,9 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
@@ -803,10 +807,11 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
+			//Deadstore
 			String string = null;
 			try {
 				string = EntityUtils.toString(entity);
@@ -898,9 +903,9 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
@@ -1063,10 +1068,11 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
+			//Deadstore
 			String string = null;
 			try {
 				string = EntityUtils.toString(entity);

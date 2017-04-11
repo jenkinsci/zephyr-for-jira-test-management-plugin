@@ -82,9 +82,9 @@ public class Cycle implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
@@ -143,12 +143,13 @@ public class Cycle implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
+				//Deadstore
 				string = EntityUtils.toString(entity);
 			} catch (ParseException e) {
 				e.printStackTrace();
@@ -185,7 +186,7 @@ public class Cycle implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -248,7 +249,7 @@ public class Cycle implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
 		if (statusCode == 400) {
 			System.out.println("Bad request. Please check content type and other request parameters");
@@ -366,6 +367,7 @@ public class Cycle implements RestBase {
 			String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;
 			
 			SimpleDateFormat sdf1 = new SimpleDateFormat("yyyy-MM-dd");
+			//Deadstore
 			String startDate = sdf1.format(date);
 			
 			GregorianCalendar gCal = new GregorianCalendar();
@@ -376,6 +378,7 @@ public class Cycle implements RestBase {
 				gCal.add(Calendar.DAY_OF_MONTH, +6);
 			}
 
+			//Deadstore
 			String endDate = sdf1.format(gCal.getTime());
 			
 			jObject.put("name", cycleName);
@@ -400,9 +403,9 @@ public class Cycle implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = response != null && response.getStatusLine() != null ? response.getStatusLine().getStatusCode() : 500;
 
-		if (statusCode >= 200 && statusCode < 300) {
+		if (response != null && statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
