@@ -18,12 +18,18 @@
 # under the License.
 #
 -->
-##Zephyr For JIRA connector for Jenkins (zfj-jenkins)
-###About the Plugin
 
+# Zephyr For JIRA connector for Jenkins (zfj-jenkins)
 
-Please refer to Zephyr Support <a href="_">Knowledge Base</a>
+## About the Plugin
 
-### License
+Please refer to Zephyr Support [Knowledge Base](https://zephyrdocs.atlassian.net/wiki/display/DEVELOPER/Zephyr+for+JIRA+Test+Management+Plugin+for+Jenkins)
+
+## Reporting Bugs
+
+Bugs are reported in the [Jenkins CI JIRA](https://issues.jenkins-ci.org/issues/?jql=project%20%3D%20JENKINS%20AND%20component%20%3D%20zephyr-for-jira-test-management-plugin).
+To report a bug you must first create an account.
+
+## License
 
 Apache License 2.0
