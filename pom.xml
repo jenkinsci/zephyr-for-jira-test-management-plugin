@@ -13,8 +13,8 @@
     <version>1.5-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>Zephyr for JIRA Test Management plugin</name>
-    <description>Sychronizes tests and update their execution status for tests in ZephyrForJira
-        (Server and Datacenter)
+    <description>Synchronizes tests and update their execution status for tests in Zephyr For JIRA
+        (Server and Data Center)
     </description>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/Zephyr+For+Jira+Test+Management+Plugin</url>
 
