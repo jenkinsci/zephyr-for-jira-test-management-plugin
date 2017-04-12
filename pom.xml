@@ -116,24 +116,6 @@
             <artifactId>commons-configuration</artifactId>
             <version>1.10</version>
         </dependency>
-        <!--
-        <dependency>
-            <groupId>com.atlassian.jira</groupId>
-            <artifactId>jira-api</artifactId>
-            <version>7.1.1</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.atlassian.util.concurrent</groupId>
-                    <artifactId>atlassian-util-concurrent</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-httpclient</groupId>
-                    <artifactId>commons-httpclient</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        -->
         <dependency>
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
@@ -154,32 +136,6 @@
             <artifactId>ac-play-java_2.10</artifactId>
             <version>0.10.1</version>
             <exclusions>
-                <!--
-                <exclusion>
-                    <groupId>com.atlassian.fugue</groupId>
-                    <artifactId>fugue</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.atlassian.jwt</groupId>
-                    <artifactId>jwt-api</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.atlassian.jwt</groupId>
-                    <artifactId>jwt-core</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>com.google.guava</groupId>
-                    <artifactId>guava</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>commons-lang</groupId>
-                    <artifactId>commons-lang</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>net.oauth.core</groupId>
-                    <artifactId>oauth</artifactId>
-                </exclusion>
--->
                 <exclusion>
                     <groupId>com.typesafe.play</groupId>
                     <artifactId>filters-helpers_2.10</artifactId>
@@ -262,7 +218,6 @@
             <version>1.7.19</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <!-- get every artifact through repo.jenkins-ci.org, which proxies all the artifacts that we need -->
