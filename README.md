@@ -24,6 +24,7 @@
 ## About the Plugin
 
 Please refer to Zephyr Support [Knowledge Base](https://zephyrdocs.atlassian.net/wiki/display/DEVELOPER/Zephyr+for+JIRA+Test+Management+Plugin+for+Jenkins)
+For information about the plugin check the [Jenkins Wiki](https://wiki.jenkins-ci.org/display/JENKINS/Zephyr+For+Jira+Test+Management+Plugin).
 
 ## Reporting Bugs
 
