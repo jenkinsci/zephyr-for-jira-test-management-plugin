@@ -8,7 +8,6 @@
         <version>2.5</version><!-- which version of Jenkins is this plugin built against? -->
     </parent>
 
-    <groupId>org.jenkins-ci.plugins</groupId>
     <artifactId>zephyr-for-jira-test-management</artifactId>
     <version>1.5-SNAPSHOT</version>
     <packaging>hpi</packaging>
