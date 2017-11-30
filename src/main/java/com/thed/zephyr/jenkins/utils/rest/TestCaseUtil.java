@@ -10,6 +10,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -45,9 +46,10 @@ public class TestCaseUtil implements RestBase {
 	private static final String URL_CREATE_EXECUTIONS_URL = "{SERVER}/rest/zapi/latest/execution?projectId={projectId}&versionId={versionId}&cycleId={cycleId}";
 	private static final String URL_EXECUTE_TEST = "{SERVER}/rest/zapi/latest/execution/updateBulkStatus";
 	private static final String JQL_SEARCH_TESTS = "jql=project={pId}&issuetype={issueTypeId}&maxResults=" + MAX_BULK_ISSUE_SEARCH_COUNT + "&startAt={searchIssueStartcount}";
-
-	
+	private static final String URL_JOB_PROGRESS_bulkexecute = "{SERVER}/rest/zapi/latest/execution/jobProgress/{jobProgressToken}?type=update_bulk_execution_status_job_progress";
 	private static final String URL_GET_CYCLES = "{SERVER}/rest/zapi/latest/cycle";
+	private static final String URL_JOB_PROGRESS = "{SERVER}/rest/zapi/latest/execution/jobProgress/{jobProgressToken}?type=add_tests_to_cycle_job_progress";
+	public static final String URL_JOB_PROGRESS_ZFJC = "{SERVER}/public/rest/api/1.0/jobprogress/{jobProgressToken}";
 
 	public static Map<Long, Map<String, Boolean>> getTestCaseDetails(ZephyrConfigModel zephyrData) {
 
@@ -270,6 +272,7 @@ public class TestCaseUtil implements RestBase {
 		Long cycleId = 0L;
 
 		CloseableHttpResponse response = null;
+		//RestClient restClient = zephyrData.getRestClient();
 		try {
 			String assignTestsToCycleURL = URL_ASSIGN_TESTS.replace("{SERVER}", zephyrData.getRestClient().getUrl());
 			
@@ -287,25 +290,55 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
+		//int statusCode = response.getStatusLine().getStatusCode();
+		//HttpEntity entity1 = response.getEntity();
+		
+		//String token = null;
+		//try{
+			//String tokenObject = EntityUtils.toString(entity1);
+			//token = new JSONObject(tokenObject).getString("jobProgressToken");
+
+		//}catch (ParseException e){
+			//e.printStackTrace();
+		//}catch(IOException e){
+		//	e.printStackTrace();
+		//}
+		
+		//checkJobProgress(zephyrData,token);
+
 		int statusCode = response.getStatusLine().getStatusCode();
+		HttpEntity entity1 = response.getEntity();
+		String token = null;
+		
+				try{
+					String tokenObject = EntityUtils.toString(entity1);
+					token = new JSONObject(tokenObject).getString("jobProgressToken");
 
-		if (statusCode >= 200 && statusCode < 300) {
-			HttpEntity entity = response.getEntity();
-			String string = null;
+				}catch (ParseException e){
+					e.printStackTrace();
+				}catch(IOException e){
+					e.printStackTrace();
+				}
+				
+				//will check if the job is completed for a max 10 times and then we will try to continue even if it does not return as complted.
+				int maxTryCount = 0;
+				boolean checkJobProgress = true;
+				
+				while (checkJobProgress) {
+					maxTryCount++;
+					try {
+						checkJobProgress = checkJobProgress(zephyrData,token);
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					if(checkJobProgress) checkJobProgress = false;
+					if(maxTryCount == 10) checkJobProgress = false;
+				}
+				
+		
+		if (statusCode >= 200 && statusCode < 300) { } else {
 			try {
-				string = EntityUtils.toString(entity);
-			} catch (ParseException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			
-			
-		} else {
-			try {
-				throw new ClientProtocolException("Unexpected response status: "
-						+ statusCode);
+				throw new ClientProtocolException("Unexpected response status: " + statusCode);
 			} catch (ClientProtocolException e) {
 				e.printStackTrace();
 			}
@@ -319,6 +352,79 @@ public class TestCaseUtil implements RestBase {
 			}
 		}
 	}
+	
+	private static boolean checkJobProgress(ZephyrConfigModel zephyrData, String token) {
+		
+		//Just to ensure the job is completed
+		try {
+			TimeUnit.SECONDS.sleep(10);
+		} catch (InterruptedException e1) {
+			e1.printStackTrace();
+		}
+
+		boolean jobCompleted = false;
+		CloseableHttpResponse response = null;
+		
+		String url = null;
+
+		if (zephyrData.isZfjClud()){
+			RestClient restClient = zephyrData.getRestClient();
+			try {
+				
+				url = URL_JOB_PROGRESS_ZFJC.replace("{SERVER}", zephyrData.getRestClient().getZephyrCloudURL()).replace("{jobProgressToken}", token);
+				String jwtHeaderValue = ServerInfo.generateJWT(restClient, url, HTTP_REQUEST_METHOD_GET);
+
+				HttpGet jobProgressRequest = new HttpGet(url);
+
+				jobProgressRequest.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+				jobProgressRequest.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
+				jobProgressRequest.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
+
+				response = zephyrData.getRestClient().getHttpclient().execute(jobProgressRequest, zephyrData.getRestClient().getContext());
+				String result = EntityUtils.toString(response.getEntity());
+					String progress = new JSONObject(result).get("progress").toString();
+				if (progress != null && progress.equals("1.0")) {
+					jobCompleted = true;
+				};
+
+			
+            }catch (Exception e) {
+                e.printStackTrace();
+                // log.debug("error during add tests to cycle job progress");
+            }
+
+		}
+else {
+			url = URL_JOB_PROGRESS
+					.replace("{SERVER}", zephyrData.getRestClient().getUrl())
+					.replace("{jobProgressToken}", token);
+			RestClient restClient = zephyrData.getRestClient();
+			try {
+				//StringEntity se = new StringEntity(jsonObject.toString());
+                HttpGet jobProgressRequest = new HttpGet(url);
+				
+				jobProgressRequest.setHeader("Content-Type", "application/json");
+                //jobProgressRequest.setEntity(se);
+				response = zephyrData.getRestClient().getHttpclient().execute(jobProgressRequest, zephyrData.getRestClient().getContext());
+				String result = EntityUtils.toString(response.getEntity());
+				
+				String progress = new JSONObject(result).get("progress").toString();
+
+				if (progress != null && progress.equals("1.0")) {
+					jobCompleted = true;
+				};
+
+			} catch (Exception e) {
+				e.printStackTrace();
+				//log.debug("error during add tests to cycle job progress");
+			}
+		}
+
+		return jobCompleted;
+}
+
+	
+
 	
 	public static Map<String, Long> fetchExecutionIds(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
 
@@ -390,9 +496,7 @@ public class TestCaseUtil implements RestBase {
 	}
 	
 	public static void executeTests(ZephyrConfigModel zephyrData, List<Long> passList, List<Long> failList) {
-
-
-		CloseableHttpResponse response = null;
+        CloseableHttpResponse response = null;
 		try {
 			String bulkExecuteTestsURL = URL_EXECUTE_TEST.replace("{SERVER}", zephyrData.getRestClient().getUrl());
 			
@@ -441,28 +545,35 @@ public class TestCaseUtil implements RestBase {
 		}
 
 		int statusCode = response.getStatusLine().getStatusCode();
+		//HttpEntity entity1 = response.getEntity();
+		//String token = null;
+		
+				//try{
+				//	String tokenObject = EntityUtils.toString(entity1);
+					//token = new JSONObject(tokenObject).getString("jobProgressToken");
 
-		if (statusCode >= 200 && statusCode < 300) {
-			HttpEntity entity = response.getEntity();
-			String string = null;
-			try {
-				string = EntityUtils.toString(entity);
-			} catch (ParseException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+		//		}catch (ParseException e){
+			//		e.printStackTrace();
+				//}catch(IOException e){
+					//e.printStackTrace();
+				//}
+		//checkJobProgressexecute(zephyrData,token);
 
-			
-		} else {
+		if (statusCode >= 200 && statusCode < 300) { } else {
 			try {
-				throw new ClientProtocolException("Unexpected response status: "
-						+ statusCode);
+				throw new ClientProtocolException("Unexpected response status: " + statusCode);
 			} catch (ClientProtocolException e) {
 				e.printStackTrace();
 			}
 		}
 	
+		if(response != null) {
+			try {
+				response.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 	public static void processTestCaseDetails(ZephyrConfigModel zephyrData) {
 		Map<Long, Map<String, Boolean>> testCaseDetails = getTestCaseDetails(zephyrData);
@@ -748,36 +859,6 @@ public class TestCaseUtil implements RestBase {
 	
 	
 	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
 	public static void assignTestsZFJC(ZephyrConfigModel zephyrData, JSONObject jsonObject) {
 
 		CloseableHttpResponse response = null;
@@ -804,6 +885,32 @@ public class TestCaseUtil implements RestBase {
 		}
 
 		int statusCode = response.getStatusLine().getStatusCode();
+		HttpEntity entity1 = response.getEntity();
+		String token = null;
+		try{
+			token = EntityUtils.toString(entity1);
+
+		}catch (ParseException e){
+			e.printStackTrace();
+		}catch(IOException e){
+			e.printStackTrace();
+		}
+		
+		//will check if the job is completed for a max 10 times and then we will try to continue even if it does not return as complted.
+		int maxTryCount = 0;
+		boolean checkJobProgress = true;
+		
+		while (checkJobProgress) {
+			maxTryCount++;
+			try {
+				checkJobProgress = checkJobProgress(zephyrData,token);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			if(checkJobProgress) checkJobProgress = false;
+			if(maxTryCount == 10) checkJobProgress = false;
+		}
+;
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -815,9 +922,6 @@ public class TestCaseUtil implements RestBase {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-
-			
-			
 		} else {
 			try {
 				throw new ClientProtocolException("Unexpected response status: "
@@ -834,8 +938,6 @@ public class TestCaseUtil implements RestBase {
 				e.printStackTrace();
 			}
 		}
-
-	
 	}
 	
 	

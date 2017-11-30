@@ -48,7 +48,7 @@ public class Cycle implements RestBase {
 			JSONObject jObject = new JSONObject();
 			String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;
 			
-			SimpleDateFormat sdf1 = new SimpleDateFormat("yyyy-MM-dd");
+			SimpleDateFormat sdf1 = new SimpleDateFormat("d/MMM/yy");
 			String startDate = sdf1.format(date);
 			
 			GregorianCalendar gCal = new GregorianCalendar();
@@ -365,7 +365,7 @@ public class Cycle implements RestBase {
 			JSONObject jObject = new JSONObject();
 			String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;
 			
-			SimpleDateFormat sdf1 = new SimpleDateFormat("yyyy-MM-dd");
+			SimpleDateFormat sdf1 = new SimpleDateFormat("d/MMM/yy");
 			String startDate = sdf1.format(date);
 			
 			GregorianCalendar gCal = new GregorianCalendar();
