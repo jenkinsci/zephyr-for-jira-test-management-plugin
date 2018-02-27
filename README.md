@@ -22,7 +22,7 @@
 ###About the Plugin
 
 
-Please refer to Zephyr Support <a href="_">Knowledge Base</a>
+Please refer to Zephyr Support <a href="https://wiki.jenkins.io/display/JENKINS/Zephyr+For+Jira+Test+Management+Plugin">Knowledge Base</a>
 
 ### License
 
