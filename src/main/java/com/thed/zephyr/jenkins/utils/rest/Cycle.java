@@ -82,7 +82,11 @@ public class Cycle implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+
+		int statusCode = 0;
+		if (response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -149,7 +153,7 @@ public class Cycle implements RestBase {
 			HttpEntity entity = response.getEntity();
 			String string = null;
 			try {
-				string = EntityUtils.toString(entity);
+				EntityUtils.toString(entity);
 			} catch (ParseException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -363,11 +367,7 @@ public class Cycle implements RestBase {
 			String dateFormatForCycleCreation = sdf.format(date);
 
 			JSONObject jObject = new JSONObject();
-			String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;
-			
-			SimpleDateFormat sdf1 = new SimpleDateFormat("d/MMM/yy");
-			String startDate = sdf1.format(date);
-			
+			String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;			
 			GregorianCalendar gCal = new GregorianCalendar();
 
 			if (zephyrData.getCycleDuration().trim().equalsIgnoreCase("30 days")) {
@@ -375,9 +375,7 @@ public class Cycle implements RestBase {
 			} else if (zephyrData.getCycleDuration().trim().equalsIgnoreCase("7 days")) {
 				gCal.add(Calendar.DAY_OF_MONTH, +6);
 			}
-
-			String endDate = sdf1.format(gCal.getTime());
-			
+		
 			jObject.put("name", cycleName);
 			jObject.put("projectId", zephyrData.getZephyrProjectId());
 			jObject.put("versionId", zephyrData.getVersionId());

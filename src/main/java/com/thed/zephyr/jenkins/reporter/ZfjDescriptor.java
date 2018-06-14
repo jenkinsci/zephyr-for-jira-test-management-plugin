@@ -468,10 +468,6 @@ public final class ZfjDescriptor extends BuildStepDescriptor<Publisher> {
 				}
 
 			}
-			
-		}	else if (StringUtils.isBlank(serverAddress)
-				|| serverAddress.trim().equals(ADD_ZEPHYR_GLOBAL_CONFIG)) {
-			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 		} else {
 			m.add(ADD_ZEPHYR_GLOBAL_CONFIG);
 		}

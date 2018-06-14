@@ -7,6 +7,7 @@ package com.thed.zephyr.jenkins.reporter;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
+import hudson.model.Result;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
 import hudson.tasks.junit.SuiteResult;
@@ -40,7 +41,7 @@ import static com.thed.zephyr.jenkins.reporter.ZfjConstants.*;
 
 public class ZfjReporter extends Notifier {
 
-	public static PrintStream logger;
+	public PrintStream logger;
 
 	private String serverAddress;
 	private String projectKey;
@@ -50,7 +51,7 @@ public class ZfjReporter extends Notifier {
 	private String cycleDuration;
 
 	
-    private static final String PluginName = new String("[ZapiTestResultReporter]");
+    private static final String PluginName = "[ZapiTestResultReporter]";
     private final String pInfo = String.format("%s [INFO]", PluginName);
 
     @DataBoundConstructor
@@ -77,8 +78,8 @@ public class ZfjReporter extends Notifier {
                            final Launcher launcher,
                            final BuildListener listener) {
         logger = listener.getLogger();
-        logger.printf("%s Examining test results...%n", pInfo);
-        logger.printf(String.format("Build result is %s%n", build.getResult().toString()));
+		logger.printf("%s Examining test results...%n", pInfo);
+        logger.printf(String.format("Build result is %s%n", getBuildResult(build)));
         
   
 		if (!validateBuildConfig()) {
@@ -103,7 +104,19 @@ public class ZfjReporter extends Notifier {
             zephyrConfig.getRestClient().destroy();
         logger.printf("%s Done.%n", pInfo);
         return true;
-    }
+	}
+	
+	private String getBuildResult(AbstractBuild build) {
+		Result res = null;
+		String buildResult = "";
+		if (build.getResult() != null) {
+			res = build.getResult();
+		}
+		if (res != null) {
+			buildResult = res.toString();
+		}
+		return buildResult;
+	}
 
 	private boolean prepareZephyrTests(final AbstractBuild build,
 			ZephyrConfigModel zephyrConfig) {
@@ -141,14 +154,10 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		
 		logger.print("Total Test Cases : " + zephyrTestCaseMap.size());
 		List<TestCaseResultModel> testcases = new ArrayList<TestCaseResultModel>();
-
-		
-		Set<String> keySet = zephyrTestCaseMap.keySet();
-		
-		for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext();) {
-			String testCaseName = iterator.next();
-			Boolean isPassed = zephyrTestCaseMap.get(testCaseName);
-			
+	
+		for (Map.Entry<String,Boolean> entry : zephyrTestCaseMap.entrySet()) {
+			String testCaseName = entry.getKey();
+			Boolean isPassed = zephyrTestCaseMap.get(testCaseName);			
 			
 			JSONObject isssueType = new JSONObject();
 			isssueType.put("id", zephyrConfig.getTestIssueTypeId()+"");
