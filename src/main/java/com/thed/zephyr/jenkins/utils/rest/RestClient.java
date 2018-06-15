@@ -100,10 +100,6 @@ public class RestClient {
 	private void createHttpClient() {
 		int connectTimeout = 10;
 		int dataWaitTimeout = 3600;
-		RequestConfig config = RequestConfig.custom()
-		  .setConnectTimeout(dataWaitTimeout * 1000)
-		  .setConnectionRequestTimeout(dataWaitTimeout * 1000)
-		  .setSocketTimeout(dataWaitTimeout * 1000).build();
 		try {
 			SSLContextBuilder builder = new SSLContextBuilder();
 			builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());

@@ -149,31 +149,7 @@ public class TestCaseUtil implements RestBase {
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		
-		int statusCode1 = issueCreateResponse.getStatusLine().getStatusCode();
-
-		if (statusCode1 >= 200 && statusCode1 < 300) {
 			
-//			Map<String, Map<Long, String>> searchedTestsAfterCreation = searchIssues(zephyrData);
-//			
-//			for (Iterator<TestCaseResultModel> iterator = testCases.iterator(); iterator.hasNext();) {
-//				TestCaseResultModel testCaseWithStatus = (TestCaseResultModel) iterator.next();
-//				
-//				if (searchedTestsAfterCreation.containsKey(testCaseWithStatus.getTestCaseName())) {
-//					
-//					Map<Long, String> tempTestIdTestKeyMap = searchedTestsAfterCreation.get(testCaseWithStatus.getTestCaseName());
-//					Set<Entry<Long, String>> entrySet = tempTestIdTestKeyMap.entrySet();
-//					Entry<Long, String> entry = entrySet.iterator().next();
-//					
-//					
-//					Map<String, Boolean> map = new HashMap<String, Boolean>();
-//					map.put(entry.getValue(), testCaseWithStatus.getPassed());
-//					testCaseResultMap.put(entry.getKey(), map);
-//				}
-//							
-//		}
-		}
-		
 		if (issueCreateResponse != null)
 			try {
 				issueCreateResponse.close();
@@ -198,7 +174,10 @@ public class TestCaseUtil implements RestBase {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -269,8 +248,6 @@ public class TestCaseUtil implements RestBase {
 			return;
 		}
 
-		Long cycleId = 0L;
-
 		CloseableHttpResponse response = null;
 		//RestClient restClient = zephyrData.getRestClient();
 		try {
@@ -306,8 +283,14 @@ public class TestCaseUtil implements RestBase {
 		
 		//checkJobProgress(zephyrData,token);
 
-		int statusCode = response.getStatusLine().getStatusCode();
-		HttpEntity entity1 = response.getEntity();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
+		HttpEntity entity1 = null;
+		if (response != null && response.getEntity() != null) {
+			entity1 = response.getEntity();
+		}
 		String token = null;
 		
 				try{
@@ -398,7 +381,6 @@ else {
 			url = URL_JOB_PROGRESS
 					.replace("{SERVER}", zephyrData.getRestClient().getUrl())
 					.replace("{jobProgressToken}", token);
-			RestClient restClient = zephyrData.getRestClient();
 			try {
 				//StringEntity se = new StringEntity(jsonObject.toString());
                 HttpGet jobProgressRequest = new HttpGet(url);
@@ -443,7 +425,10 @@ else {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if (response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -544,7 +529,10 @@ else {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 		//HttpEntity entity1 = response.getEntity();
 		//String token = null;
 		
@@ -647,13 +635,11 @@ else {
 			
 			List<Long> passList = new ArrayList<Long>();
 			List<Long> failList = new ArrayList<Long>();
-			for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
-				Entry<Long, Map<String, Boolean>> entry = iterator
-						.next();
+			for (Map.Entry<Long, Map<String, Boolean>> entry : entrySet) {
 				Map<String, Boolean> value = entry.getValue();
-				Set<String> keySet = value.keySet();
-				for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
-					String issueKey = iterator2.next();
+				Set<Map.Entry<String, Boolean>> keySet = value.entrySet();
+				for (Map.Entry<String, Boolean> entry2 : keySet) {
+					String issueKey = entry2.getKey();
 					
 					createExecutionsJObj.put("issueId", entry.getKey());
 					createExecutionsJObj.put("versionId", zephyrData.getVersionId());
@@ -687,13 +673,11 @@ else {
 			
 			List<String> passList = new ArrayList<String>();
 			List<String> failList = new ArrayList<String>();
-			for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
-				Entry<Long, Map<String, Boolean>> entry = iterator
-						.next();
+			for (Map.Entry<Long, Map<String, Boolean>> entry : entrySet) {
 				Map<String, Boolean> value = entry.getValue();
-				Set<String> keySet = value.keySet();
-				for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
-					String issueKey = iterator2.next();
+				Set<Map.Entry<String, Boolean>> keySet = value.entrySet();
+				for (Map.Entry<String, Boolean> entry2 : keySet) {
+					String issueKey = entry2.getKey();
 					
 					createExecutionsJObj.put("issueId", entry.getKey());
 					createExecutionsJObj.put("versionId", zephyrData.getVersionId());
@@ -764,7 +748,10 @@ else {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -884,8 +871,14 @@ else {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
-		HttpEntity entity1 = response.getEntity();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
+		HttpEntity entity1 = null;
+		if (response != null && response.getEntity() != null) {
+			entity1 = response.getEntity();
+		}
 		String token = null;
 		try{
 			token = EntityUtils.toString(entity1);
@@ -914,9 +907,8 @@ else {
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
-			String string = null;
 			try {
-				string = EntityUtils.toString(entity);
+				EntityUtils.toString(entity);
 			} catch (ParseException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -1000,7 +992,10 @@ else {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -1165,13 +1160,15 @@ else {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
-			String string = null;
 			try {
-				string = EntityUtils.toString(entity);
+				EntityUtils.toString(entity);
 			} catch (ParseException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
