@@ -931,41 +931,7 @@ else {
 			}
 		}
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+		
 	public static int fetchExecutionIdsZFJC(ZephyrConfigModel zephyrData, JSONObject jsonObject, Map<String, String> issueKeyExecutionIdMap, int offset) {
 
 		int totalCount = 0;
@@ -1048,30 +1014,6 @@ else {
 		issueKeyExecutionIdMap.putAll(map);
 		return totalCount;
 	}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 	private static void executeTestsZFJC(ZephyrConfigModel zephyrData, List<String> passList, List<String> failList) {
 
