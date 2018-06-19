@@ -257,11 +257,6 @@ public class ZfjReporter extends Notifier implements SimpleBuildStep {
 	    			String zephyrCloudAddress = zephyrCloudInstance.getZephyrCloudAddress();
 	    			String zephyrCloudAccessKey = zephyrCloudInstance.getZephyrCloudAccessKey();
 					String zephyrCloudSecretKey = zephyrCloudInstance.getZephyrCloudSecretKey();
-					logger.println(jiraCloudUserName);
-					logger.println(jiraCloudPassword);
-					logger.println(zephyrCloudAddress);
-					logger.println(zephyrCloudAccessKey);
-					logger.println(zephyrCloudSecretKey);
 	    			restClient = new RestClient(serverAddress, jiraCloudUserName, jiraCloudPassword, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
 	    			zephyrConfig.setZfjClud(true);
 	    			break;

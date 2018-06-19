@@ -4,3 +4,7 @@ target
 /.project
 /.gitignore
 /work/
+.settings/org.eclipse.jdt.core.prefs
+.settings/org.eclipse.core.resources.prefs
+.factorypath
+.settings/org.eclipse.jdt.apt.core.prefs
