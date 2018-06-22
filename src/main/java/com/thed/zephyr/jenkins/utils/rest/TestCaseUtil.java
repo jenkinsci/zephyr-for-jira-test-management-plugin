@@ -2,7 +2,6 @@ package com.thed.zephyr.jenkins.utils.rest;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -31,7 +30,7 @@ import com.thed.zephyr.jenkins.model.TestCaseResultModel;
 import com.thed.zephyr.jenkins.model.ZephyrConfigModel;
 
 public class TestCaseUtil implements RestBase {
-	private static PrintStream logger;
+	
     public static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
     private static final int MAX_BULK_OPERATION_COUNT = 50;
     private static final int MAX_BULK_ISSUE_CREATE_COUNT = 50;
@@ -51,10 +50,6 @@ public class TestCaseUtil implements RestBase {
 	private static final String URL_GET_CYCLES = "{SERVER}/rest/zapi/latest/cycle";
 	private static final String URL_JOB_PROGRESS = "{SERVER}/rest/zapi/latest/execution/jobProgress/{jobProgressToken}?type=add_tests_to_cycle_job_progress";
 	public static final String URL_JOB_PROGRESS_ZFJC = "{SERVER}/public/rest/api/1.0/jobprogress/{jobProgressToken}";
-
-	public static void setLogger(PrintStream _logger) {
-		logger = _logger;
-	}
 
 	public static Map<Long, Map<String, Boolean>> getTestCaseDetails(ZephyrConfigModel zephyrData) {
 
@@ -946,11 +941,8 @@ else {
 		try {
 			
 			RestClient restClient = zephyrData.getRestClient();
-			logger.println("ZephyrCloudUrl" + restClient.getZephyrCloudURL());
-			logger.println("Zephyr CycleId" + zephyrData.getCycleIdZfjCloud());
-			logger.println("Zephyr ProjectId" + zephyrData.getZephyrProjectId());
-			logger.println(zephyrData.getVersionId());
-			String executionsURL = URL_ZFJC_CREATE_EXECUTIONS_URL.replace(ZFJC_SERVER, restClient.getZephyrCloudURL()).replace(CYCLEID, zephyrData.getCycleIdZfjCloud()).replace(PROJECTID, zephyrData.getZephyrProjectId()+"").replace(VERSIONID, zephyrData.getVersionId()+"").replace(PAGINATION_OFFSET, offset+"");
+			//String executionsURL = URL_ZFJC_CREATE_EXECUTIONS_URL.replace(ZFJC_SERVER, restClient.getZephyrCloudURL()).replace(CYCLEID, zephyrData.getCycleIdZfjCloud()).replace(PROJECTID, zephyrData.getZephyrProjectId()+"").replace(VERSIONID, zephyrData.getVersionId()+"").replace(PAGINATION_OFFSET, offset+"");
+			String executionsURL = URL_ZFJC_CREATE_EXECUTIONS_URL.replace(ZFJC_SERVER, restClient.getZephyrCloudURL()).replace(CYCLEID, "CreateNewCycle").replace(PROJECTID, zephyrData.getZephyrProjectId()+"").replace(VERSIONID, zephyrData.getVersionId()+"").replace(PAGINATION_OFFSET, offset+"");
 			String jwtHeaderValue = ServerInfo.generateJWT(restClient, executionsURL, HTTP_REQUEST_METHOD_GET);
 
 			HttpGet executionsURLRequest = new HttpGet(executionsURL);
