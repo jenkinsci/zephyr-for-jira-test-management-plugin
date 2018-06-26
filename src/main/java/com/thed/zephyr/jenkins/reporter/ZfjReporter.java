@@ -202,10 +202,6 @@ public class ZfjReporter extends Notifier implements SimpleBuildStep {
 				|| ADD_ZEPHYR_GLOBAL_CONFIG.equals(versionKey.trim())
 				|| ADD_ZEPHYR_GLOBAL_CONFIG.equals(cycleKey.trim()))	{
 
-			logger.println(serverAddress);
-			logger.println(projectKey);
-			logger.println(versionKey);
-			logger.println(cycleKey);
 			logger.println("Cannot Proceed");
 			valid = false;
 		}
@@ -280,7 +276,6 @@ public class ZfjReporter extends Notifier implements SimpleBuildStep {
 	private void determineCycleID(ZephyrConfigModel zephyrConfig) {
 		
 		if(zephyrConfig.isZfjClud()) {
-			logger.println("IS CLOUD TRUE");
 			if (cycleKey.equalsIgnoreCase(NEW_CYCLE_KEY)) {
 				logger.println(NEW_CYCLE_KEY);
 				logger.println(NEW_CYCLE_KEY_IDENTIFIER);
@@ -288,7 +283,6 @@ public class ZfjReporter extends Notifier implements SimpleBuildStep {
 				zephyrConfig.setCycleIdZfjCloud(NEW_CYCLE_KEY_IDENTIFIER+"");
 				return;
 			}
-			logger.println("Cycle Key: " + cycleKey);
 			zephyrConfig.setCycleName(cycleKey);	
 			zephyrConfig.setCycleIdZfjCloud(cycleKey);
 			return;
@@ -373,6 +367,7 @@ public class ZfjReporter extends Notifier implements SimpleBuildStep {
             return false;
         }
 
+		TestCaseUtil.setLogger(logger);
         TestCaseUtil.processTestCaseDetails(zephyrConfig);
 
         zephyrConfig.getRestClient().destroy();

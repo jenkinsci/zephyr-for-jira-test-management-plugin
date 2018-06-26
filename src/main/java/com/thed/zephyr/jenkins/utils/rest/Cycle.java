@@ -1,6 +1,7 @@
 package com.thed.zephyr.jenkins.utils.rest;
 
 import java.io.IOException;
+import java.io.PrintStream;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -29,9 +30,14 @@ public class Cycle implements RestBase {
 
     public static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
 
+	private static PrintStream logger;
 	private static String URL_GET_CYCLES = "{SERVER}/rest/zapi/latest/cycle?projectId={projectId}&versionId={versionId}";
 	private static String URL_CREATE_CYCLES = "{SERVER}/rest/zapi/latest/cycle";
 	private static String URL_DELETE_CYCLE = "{SERVER}/rest/zapi/latest/cycle/{id}";
+
+	public static void setLogger(PrintStream _logger) {
+		logger = _logger;
+	}
 
 	public static Long createCycle(ZephyrConfigModel zephyrData) {
 
@@ -252,6 +258,7 @@ public class Cycle implements RestBase {
 			getRequest.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
 
 			response = restClient.getHttpclient().execute(getRequest);
+			
 		} catch (ClientProtocolException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
@@ -353,7 +360,7 @@ public class Cycle implements RestBase {
 		
 		Map<String, String> fetchExecutionIdsZFJC = new HashMap<String, String>();
 		
-				TestCaseUtil.fetchExecutionIdsZFJC(zephyrData, jsonObject, fetchExecutionIdsZFJC, 0);
+				//TestCaseUtil.fetchExecutionIdsZFJC(zephyrData, jsonObject, fetchExecutionIdsZFJC, 0);
 		
 		System.out.println("fetchExecutionIdsZFJC : " + fetchExecutionIdsZFJC);
 		
@@ -369,6 +376,7 @@ public class Cycle implements RestBase {
 			
 			RestClient restClient = zephyrData.getRestClient();
 			String createCycleURL = URL_ZFJC_CREATE_CYCLE.replace(ZFJC_SERVER, restClient.getZephyrCloudURL());
+			System.out.println("CreateCycleUrl: " + createCycleURL);
 			String jwtHeaderValue = ServerInfo.generateJWT(restClient, createCycleURL, HTTP_REQUEST_METHOD_POST);
 			
 			Date date = new Date();
@@ -387,12 +395,13 @@ public class Cycle implements RestBase {
 		
 			jObject.put("name", cycleName);
 			jObject.put("projectId", zephyrData.getZephyrProjectId());
-			jObject.put("versionId", zephyrData.getVersionId());
+			jObject.put("versionId", -1);
 			jObject.put("startDate", date.getTime());
 			jObject.put("endDate", gCal.getTimeInMillis());
 			
 			StringEntity se = new StringEntity(jObject.toString(), "utf-8");
-			
+			System.out.println(se);
+			System.out.println(cycleName);
 			HttpPost createCycleRequest = new HttpPost(createCycleURL);
 			
 			createCycleRequest.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
@@ -417,6 +426,7 @@ public class Cycle implements RestBase {
 			String string = null;
 			try {
 				string = EntityUtils.toString(entity);
+				logger.println(string);
 			} catch (ParseException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
@@ -427,6 +437,7 @@ public class Cycle implements RestBase {
 			try {
 				JSONObject cycleObj = new JSONObject(string);
 				cycleId = cycleObj.getString("id");
+				logger.println(cycleId);
 				
 			} catch (JSONException e) {
 				e.printStackTrace();
@@ -438,6 +449,7 @@ public class Cycle implements RestBase {
 			String string = null;
 			try {
 				string = EntityUtils.toString(entity);
+				logger.println(entity);
 			} catch (ParseException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
