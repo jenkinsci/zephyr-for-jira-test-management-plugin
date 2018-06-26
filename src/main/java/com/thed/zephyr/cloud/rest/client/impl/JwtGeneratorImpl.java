@@ -149,6 +149,7 @@ public class JwtGeneratorImpl implements JwtGenerator {
 
             jwt = jwtAuthorisationGenerator.generate(HttpMethod.valueOf(requestMethod), uriWithoutProductContext, new HashMap<String, List<String>>(), zConfig.host, zConfig.USER_NAME);
         } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         final String authorizationHeaderValue = jwt.getOrNull();
 

@@ -20,9 +20,6 @@ public class ZConfig extends PropertiesConfiguration {
     public String JIRA_SHARED_SECRET;
 
     public String ZEPHYR_BASE_URL;
-    public String APP_KEY;
-    public String SECRET_KEY;
-    public String ACCESS_KEY;
     public AcHost host;
 
     final List<String> reqdConfigKeys = ImmutableList.<String>builder().add("userName").add("jiraHostKey").add("jiraBaseURL").add("sharedSecret").add("zephyrBaseURL").add("accessKey").add("secretKey").add("appKey").build();
@@ -35,8 +32,8 @@ public class ZConfig extends PropertiesConfiguration {
         JIRA_SHARED_SECRET = secretKey;
 
         ZEPHYR_BASE_URL = zephyrBaseUrl;
-        ACCESS_KEY = accessKey;
         USER_NAME = Option.option(userName);
+        JIRA_BASE_URL = "";
 
         host = new AcHost();
         host.setKey(JIRA_HOST_KEY);
@@ -129,13 +126,9 @@ public class ZConfig extends PropertiesConfiguration {
 
     private void setLocalPropertyValues() {
         JIRA_HOST_KEY = this.getString("accessKey");
-        //JIRA_BASE_URL = this.getString("jiraBaseURL");
         JIRA_SHARED_SECRET = this.getString("secretKey");
 
         ZEPHYR_BASE_URL = this.getString("zephyrBaseURL");
-        //SECRET_KEY = this.getString("secretKey");
-        ACCESS_KEY = this.getString("accessKey");
-        //APP_KEY = this.getString("appKey");
 
         USER_NAME =  Option.some(this.getString("userName"));
 

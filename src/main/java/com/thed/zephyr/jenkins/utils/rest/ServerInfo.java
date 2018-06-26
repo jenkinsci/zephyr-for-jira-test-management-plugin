@@ -44,7 +44,10 @@ public class ServerInfo {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -91,7 +94,10 @@ public class ServerInfo {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -144,7 +150,10 @@ public class ServerInfo {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode == 401) {
 			status = false;
@@ -174,7 +183,10 @@ public class ServerInfo {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if ( response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode == 401) {
 			
