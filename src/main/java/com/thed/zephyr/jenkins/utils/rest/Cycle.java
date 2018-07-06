@@ -395,7 +395,7 @@ public class Cycle implements RestBase {
 		
 			jObject.put("name", cycleName);
 			jObject.put("projectId", zephyrData.getZephyrProjectId());
-			jObject.put("versionId", -1);
+			jObject.put("versionId", zephyrData.getVersionId());
 			jObject.put("startDate", date.getTime());
 			jObject.put("endDate", gCal.getTimeInMillis());
 			
