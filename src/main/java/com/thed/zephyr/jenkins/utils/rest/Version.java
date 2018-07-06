@@ -35,7 +35,10 @@ public class Version {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if (response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();
@@ -93,7 +96,11 @@ public class Version {
 			e.printStackTrace();
 		}
 
-		int statusCode = response.getStatusLine().getStatusCode();
+		int statusCode = 0;
+		if (response != null && response.getStatusLine() != null) {
+			statusCode = response.getStatusLine().getStatusCode();
+		}
+
 
 		if (statusCode >= 200 && statusCode < 300) {
 			HttpEntity entity = response.getEntity();

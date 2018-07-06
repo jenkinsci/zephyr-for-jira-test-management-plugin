@@ -3,16 +3,22 @@ package com.thed.zephyr.jenkins.reporter;
 /**
  * @author mohan
  */
-
+import hudson.FilePath;
 import hudson.Launcher;
 import hudson.model.BuildListener;
 import hudson.model.AbstractBuild;
+import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.tasks.BuildStepMonitor;
 import hudson.tasks.Notifier;
+import jenkins.tasks.SimpleBuildStep;
 import hudson.tasks.junit.SuiteResult;
 import hudson.tasks.junit.TestResultAction;
 import hudson.tasks.junit.CaseResult;
 
+
+import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -38,9 +44,9 @@ import com.thed.zephyr.jenkins.utils.rest.TestCaseUtil;
 
 import static com.thed.zephyr.jenkins.reporter.ZfjConstants.*;
 
-public class ZfjReporter extends Notifier {
+public class ZfjReporter extends Notifier implements SimpleBuildStep {
 
-	public static PrintStream logger;
+	public PrintStream logger;
 
 	private String serverAddress;
 	private String projectKey;
@@ -50,7 +56,7 @@ public class ZfjReporter extends Notifier {
 	private String cycleDuration;
 
 	
-    private static final String PluginName = new String("[ZapiTestResultReporter]");
+    private static final String PluginName = "[ZapiTestResultReporter]";
     private final String pInfo = String.format("%s [INFO]", PluginName);
 
     @DataBoundConstructor
@@ -77,35 +83,47 @@ public class ZfjReporter extends Notifier {
                            final Launcher launcher,
                            final BuildListener listener) {
         logger = listener.getLogger();
-        logger.printf("%s Examining test results...%n", pInfo);
-        logger.printf(String.format("Build result is %s%n", build.getResult().toString()));
+		logger.printf("%s Examining test results...%n", pInfo);
+        logger.printf(String.format("Build result is %s%n", getBuildResult(build)));
         
-  
-		if (!validateBuildConfig()) {
-			logger.println("Cannot Proceed. Please verify the job configuration");
-			return false;
+		return perform(build);
+		// if (!validateBuildConfig()) {
+		// 	logger.println("Cannot Proceed. Please verify the job configuration");
+		// 	return false;
+		// }
+
+		// int number = build.getRootBuild().getNumber();
+		// ZephyrConfigModel zephyrConfig = initializeZephyrData();
+		// zephyrConfig.setBuilNumber(number);
+
+        // 	boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
+        	
+        // 	if(!prepareZephyrTests) {
+    	// 		logger.println("Error parsing surefire reports.");
+    	// 		logger.println("Please ensure \"Publish JUnit test result report is added\" as a post build action");
+    	// 		return false;
+        // 	}
+        	
+		// 	TestCaseUtil.processTestCaseDetails(zephyrConfig);
+
+        //     zephyrConfig.getRestClient().destroy();
+        // logger.printf("%s Done.%n", pInfo);
+        // return true;
+	}
+	
+	private String getBuildResult(AbstractBuild build) {
+		Result res = null;
+		String buildResult = "";
+		if (build.getResult() != null) {
+			res = build.getResult();
 		}
+		if (res != null) {
+			buildResult = res.toString();
+		}
+		return buildResult;
+	}
 
-		int number = build.getRootBuild().getNumber();
-		ZephyrConfigModel zephyrConfig = initializeZephyrData();
-		zephyrConfig.setBuilNumber(number);
-
-        	boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
-        	
-        	if(!prepareZephyrTests) {
-    			logger.println("Error parsing surefire reports.");
-    			logger.println("Please ensure \"Publish JUnit test result report is added\" as a post build action");
-    			return false;
-        	}
-        	
-			TestCaseUtil.processTestCaseDetails(zephyrConfig);
-
-            zephyrConfig.getRestClient().destroy();
-        logger.printf("%s Done.%n", pInfo);
-        return true;
-    }
-
-	private boolean prepareZephyrTests(final AbstractBuild build,
+	private boolean prepareZephyrTests(final Run build,
 			ZephyrConfigModel zephyrConfig) {
 		
 		boolean status = true;
@@ -127,28 +145,24 @@ public class ZfjReporter extends Notifier {
 		
 		
 		
-for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
-		SuiteResult suiteResult = iterator.next();
-		List<CaseResult> cases = suiteResult.getCases();
-		for (CaseResult caseResult : cases) {
-			boolean isPassed = caseResult.isPassed();
-			String name = caseResult.getFullName();
-			if (!zephyrTestCaseMap.containsKey(name)) {
-				zephyrTestCaseMap.put(name, isPassed);
-			}
+		for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
+				SuiteResult suiteResult = iterator.next();
+				List<CaseResult> cases = suiteResult.getCases();
+				for (CaseResult caseResult : cases) {
+					boolean isPassed = caseResult.isPassed();
+					String name = caseResult.getFullName();
+					if (!zephyrTestCaseMap.containsKey(name)) {
+						zephyrTestCaseMap.put(name, isPassed);
+					}
+				}
 		}
-}
 		
 		logger.print("Total Test Cases : " + zephyrTestCaseMap.size());
 		List<TestCaseResultModel> testcases = new ArrayList<TestCaseResultModel>();
-
-		
-		Set<String> keySet = zephyrTestCaseMap.keySet();
-		
-		for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext();) {
-			String testCaseName = iterator.next();
-			Boolean isPassed = zephyrTestCaseMap.get(testCaseName);
-			
+	
+		for (Map.Entry<String,Boolean> entry : zephyrTestCaseMap.entrySet()) {
+			String testCaseName = entry.getKey();
+			Boolean isPassed = zephyrTestCaseMap.get(testCaseName);			
 			
 			JSONObject isssueType = new JSONObject();
 			isssueType.put("id", zephyrConfig.getTestIssueTypeId()+"");
@@ -233,12 +247,12 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		RestClient restClient = null;
 		if (serverAddress.contains(ATLASSIAN_NET)) {
 			for (ZephyrCloudInstance zephyrCloudInstance: jiraCloudInstances) {
-	    		if(zephyrCloudInstance.getJiraCloudAddress().trim().equals(serverAddress)) {
+	    		if(zephyrCloudInstance.getJiraCloudAddress().trim().equals(serverAddress)) {					
 	    			String jiraCloudUserName = zephyrCloudInstance.getJiraCloudUserName();
 	    			String jiraCloudPassword = zephyrCloudInstance.getJiraCloudPassword();
 	    			String zephyrCloudAddress = zephyrCloudInstance.getZephyrCloudAddress();
 	    			String zephyrCloudAccessKey = zephyrCloudInstance.getZephyrCloudAccessKey();
-	    			String zephyrCloudSecretKey = zephyrCloudInstance.getZephyrCloudSecretKey();
+					String zephyrCloudSecretKey = zephyrCloudInstance.getZephyrCloudSecretKey();
 	    			restClient = new RestClient(serverAddress, jiraCloudUserName, jiraCloudPassword, zephyrCloudAddress, zephyrCloudAccessKey, zephyrCloudSecretKey);
 	    			zephyrConfig.setZfjClud(true);
 	    			break;
@@ -262,13 +276,13 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 	private void determineCycleID(ZephyrConfigModel zephyrConfig) {
 		
 		if(zephyrConfig.isZfjClud()) {
-			
 			if (cycleKey.equalsIgnoreCase(NEW_CYCLE_KEY)) {
+				logger.println(NEW_CYCLE_KEY);
+				logger.println(NEW_CYCLE_KEY_IDENTIFIER);
 				zephyrConfig.setCycleId(NEW_CYCLE_KEY_IDENTIFIER);
 				zephyrConfig.setCycleIdZfjCloud(NEW_CYCLE_KEY_IDENTIFIER+"");
 				return;
 			}
-
 			zephyrConfig.setCycleName(cycleKey);	
 			zephyrConfig.setCycleIdZfjCloud(cycleKey);
 			return;
@@ -319,6 +333,47 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 	}
 
 
+	@Override
+    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener listener) throws InterruptedException, IOException {
+        logger = listener.getLogger();
+		logger.printf("%s Examining test results...%n", pInfo);
+		Result runResult = null;
+		String runResultString = "";
+		if (run != null && run.getResult() != null) {
+			runResult = run.getResult();
+			if (runResult != null) {
+				runResultString = runResult.toString();
+			}
+		}
+        logger.printf(String.format("Build result is %s%n", runResultString));
+        perform(run);
+    }
+
+    private boolean perform(final Run build) {
+        if (!validateBuildConfig()) {
+            logger.println("Cannot Proceed. Please verify the job configuration");
+            return false;
+        }
+
+        int number = build.getNumber();
+        ZephyrConfigModel zephyrConfig = initializeZephyrData();
+        zephyrConfig.setBuilNumber(number);
+
+        boolean prepareZephyrTests = prepareZephyrTests(build, zephyrConfig);
+
+        if(!prepareZephyrTests) {
+            logger.println("Error parsing surefire reports.");
+            logger.println("Please ensure \"Publish JUnit test result report is added\" as a post build action");
+            return false;
+        }
+
+		TestCaseUtil.setLogger(logger);
+        TestCaseUtil.processTestCaseDetails(zephyrConfig);
+
+        zephyrConfig.getRestClient().destroy();
+        logger.printf("%s Done.%n", pInfo);
+        return true;
+    }
 
     @Override
     public ZfjDescriptor getDescriptor() {
