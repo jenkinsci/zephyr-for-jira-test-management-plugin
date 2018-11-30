@@ -1,8 +1,9 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 	<f:section title="Zephyr For JIRA - Test Management Configuration">
-		<f:radioBlock name="dynamic" title="JIRA Server/Data Center">
-			 <f:entry title="">
+		<j:if test="${!empty(instance.jiraInstances[0])}">
+			<f:radioBlock name="dynamic" title="JIRA Server/Data Center" checked="true" >
+			<f:entry title="">
 			 <f:repeatable var="zephyrInstancesList" name="jiraInstances" items="${instance.jiraInstances}" noAddButton="false" minimum="0">
 			    <table>
 			        <f:entry title="JIRA Server" description="JIRA Server IP address or hostname" 
@@ -33,7 +34,44 @@
 			</f:repeatable>
 			</f:entry>
 		</f:radioBlock>
-		<f:radioBlock name="dynamic" title="JIRA Cloud">
+  		</j:if>
+		<j:if test="${empty(instance.jiraInstances[0])}">
+			<f:radioBlock name="dynamic" title="JIRA Server/Data Center" checked="false" >
+			<f:entry title="">
+			 <f:repeatable var="zephyrInstancesList" name="jiraInstances" items="${instance.jiraInstances}" noAddButton="false" minimum="0">
+			    <table>
+			        <f:entry title="JIRA Server" description="JIRA Server IP address or hostname" 
+			                                field="serverAddress">
+			            <f:textbox value="${zephyrInstancesList.serverAddress}" default="" />
+			        </f:entry>
+			            <f:entry title="User Name" description="JIRA Server User Name" 
+			                                field="username">
+			            <f:textbox value="${zephyrInstancesList.username}" default="" />
+			        </f:entry>
+			        
+			                <f:entry title="Password" description="JIRA Server User Password" 
+			                                field="password">
+			            <f:password value="${zephyrInstancesList.password}" default="" />
+			        </f:entry>
+			    <f:validateButton title="Test Configuration&#160;" progress="Please wait .. We are validating the connection and credentials" method="testConnection" with="serverAddress,username,password" />                        
+			        <tr>
+			        	<td></td>
+			        	<td></td>
+			        	<td>    
+			            	<div style="float:right;">
+			                	<input type="button" value="Delete JIRA Server url" class="repeatable-delete" style="margin-left: 1em;" />
+			            	</div>
+			            </td>
+			        </tr>
+			    </table>
+			    
+			</f:repeatable>
+			</f:entry>
+		</f:radioBlock>
+  		</j:if>
+		
+		<j:if test="${!empty(instance.jiraCloudInstances[0])}">	 
+		<f:radioBlock name="dynamic" title="JIRA Cloud" checked="true">
 			 <f:entry title="">
 			 <f:repeatable var="zephyrCloudInstancesList" name="jiraCloudInstances" items="${instance.jiraCloudInstances}" noAddButton="false" minimum="0">
 			    <table>
@@ -76,5 +114,51 @@
 			</f:repeatable>
 			</f:entry>
 		</f:radioBlock>
+		</j:if>
+		<j:if test="${empty(instance.jiraCloudInstances[0])}">	 
+		<f:radioBlock name="dynamic" title="JIRA Cloud" checked="false">
+			 <f:entry title="">
+			 <f:repeatable var="zephyrCloudInstancesList" name="jiraCloudInstances" items="${instance.jiraCloudInstances}" noAddButton="false" minimum="0">
+			    <table>
+			        <f:entry title="JIRA Cloud URL" description="JIRA Cloud IP address or hostname" 
+			                                field="jiraCloudAddress">
+			            <f:textbox value="${zephyrCloudInstancesList.jiraCloudAddress}" default="" />
+			        </f:entry>
+			        <f:entry title="Zephyr Base URL" description="Zephyr Base URL" 
+			                                field="zephyrCloudAddress">
+			            <f:textbox value="${zephyrCloudInstancesList.zephyrCloudAddress}" default="" />
+			        </f:entry>
+		            <f:entry title="User Name" description="JIRA Cloud User Name" 
+			                                field="jiraCloudUserName">
+			            <f:textbox value="${zephyrCloudInstancesList.jiraCloudUserName}" default="" />
+			        </f:entry>
+		            <f:entry title="Password" description="JIRA Cloud Password" 
+			                                field="jiraCloudPassword">
+			            <f:password value="${zephyrCloudInstancesList.jiraCloudPassword}" default="" />
+			        </f:entry>
+			        <f:entry title="Access Key" description="Zephyr for JIRA Cloud Access Key" 
+			                                field="zephyrCloudAccessKey">
+			            <f:password value="${zephyrCloudInstancesList.zephyrCloudAccessKey}" default="" />
+			        </f:entry>
+			        <f:entry title="Secret Key" description="Zephyr for JIRA Cloud Secret Key" 
+			                                field="zephyrCloudSecretKey">
+			            <f:password value="${zephyrCloudInstancesList.zephyrCloudSecretKey}" default="" />
+			        </f:entry>
+			    <f:validateButton title="Test Configuration&#160;" progress="Please wait .. We are validating the connection and credentials" method="testZephyrCloudConnection" with="jiraCloudAddress,zephyrCloudAddress,jiraCloudUserName,jiraCloudPassword,zephyrCloudAccessKey,zephyrCloudSecretKey" />                        
+			        <tr>
+			        	<td></td>
+			        	<td></td>
+			        	<td>    
+			            	<div style="float:right;">
+			                	<input type="button" value="Delete JIRA Cloud URL" class="repeatable-delete" style="margin-left: 1em;" />
+			            	</div>
+			            </td>
+			        </tr>
+			    </table>
+			    
+			</f:repeatable>
+			</f:entry>
+		</f:radioBlock>
+		</j:if>
 	</f:section>
 </j:jelly>
