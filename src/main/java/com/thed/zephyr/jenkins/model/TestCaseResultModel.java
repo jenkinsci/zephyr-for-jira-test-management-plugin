@@ -5,6 +5,7 @@ public class TestCaseResultModel {
 	private Boolean passed;
 	private String testCase;
 	private String testCaseName;
+	private String testCaseError;
 
 	public String getTestCaseName() {
 		return testCaseName;
@@ -29,5 +30,12 @@ public class TestCaseResultModel {
 	public void setPassed(Boolean passed) {
 		this.passed = passed;
 	}
-
+	
+	public String getError(){
+		return testCaseError;
+	}
+	
+	public void setError(String error){
+		this.testCaseError = error;
+	}
 }

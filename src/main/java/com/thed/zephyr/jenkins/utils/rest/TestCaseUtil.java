@@ -29,6 +29,9 @@ import org.json.JSONObject;
 import com.thed.zephyr.jenkins.model.TestCaseResultModel;
 import com.thed.zephyr.jenkins.model.ZephyrConfigModel;
 
+import java.io.PrintStream;
+import hudson.model.BuildListener;
+
 public class TestCaseUtil implements RestBase {
 	
     public static final long NEW_CYCLE_KEY_IDENTIFIER = 1000000000L;
@@ -50,15 +53,17 @@ public class TestCaseUtil implements RestBase {
 	private static final String URL_GET_CYCLES = "{SERVER}/rest/zapi/latest/cycle";
 	private static final String URL_JOB_PROGRESS = "{SERVER}/rest/zapi/latest/execution/jobProgress/{jobProgressToken}?type=add_tests_to_cycle_job_progress";
 	public static final String URL_JOB_PROGRESS_ZFJC = "{SERVER}/public/rest/api/1.0/jobprogress/{jobProgressToken}";
-
-	public static Map<Long, Map<String, Boolean>> getTestCaseDetails(ZephyrConfigModel zephyrData) {
-
+    public static final String URL_UPDATE_EXECUTION = "{SERVER}/rest/zapi/latest/execution/{ID}/execute";
+ 
+    public static PrintStream logger;
+    
+	public static Map<Long, Map<String, String>> getTestCaseDetails(ZephyrConfigModel zephyrData) {
+        
 		JSONObject bulkIssues = new JSONObject();
 		JSONArray issueUpdates = new JSONArray();
 		List<JSONArray> issueKeyJSONArrayList = new ArrayList<JSONArray>();
 
-
-		Map<Long, Map<String, Boolean>> testCaseResultMap = new HashMap<Long, Map<String, Boolean>>();
+		Map<Long, Map<String, String>> testCaseResultMap = new HashMap<Long, Map<String, String>>();
 		List<TestCaseResultModel> testCases = zephyrData.getTestcases();
 		if (testCases == null || testCases.size() == 0) {
 			return testCaseResultMap;
@@ -75,12 +80,15 @@ public class TestCaseUtil implements RestBase {
 					
 					Map<Long, String> tempTestIdTestKeyMap = searchedTests.get(testCaseWithStatus.getTestCaseName());
 					Set<Entry<Long, String>> entrySet = tempTestIdTestKeyMap.entrySet();
-					Entry<Long, String> entry = entrySet.iterator().next();
+					Entry<Long, String> entry = entrySet.iterator().next();					
 					
-					
-					Map<String, Boolean> map = new HashMap<String, Boolean>();
-					map.put(entry.getValue(), testCaseWithStatus.getPassed());
+					Map<String, String> map = new HashMap<String, String>();
+					map.put(entry.getValue(), testCaseWithStatus.getError());
 					testCaseResultMap.put(entry.getKey(), map);
+                    
+                    String error = testCaseWithStatus.getError();
+                    logger.printf("error for %s = %s...%n",testCaseWithStatus.getTestCaseName(),testCaseWithStatus.getError());
+                    
 				} else {
 					String testCase = testCaseWithStatus.getTestCase();
 					JSONObject issue = new JSONObject(testCase);
@@ -103,7 +111,7 @@ public class TestCaseUtil implements RestBase {
 		}
 		for (int i = 0; i < issueKeyJSONArrayList.size(); i++) {
 			bulkIssues.put("issueUpdates", issueKeyJSONArrayList.get(i));
-			createTests(zephyrData, bulkIssues, testCaseResultMap, testCases);
+			createTests(zephyrData, bulkIssues, testCases);
 		}
 		
 
@@ -117,21 +125,20 @@ public class TestCaseUtil implements RestBase {
 				
 				Map<Long, String> tempTestIdTestKeyMap = searchedTestsAfterCreation.get(testCaseWithStatus.getTestCaseName());
 				Set<Entry<Long, String>> entrySet = tempTestIdTestKeyMap.entrySet();
-				Entry<Long, String> entry = entrySet.iterator().next();
+				Entry<Long, String> entry = entrySet.iterator().next();				
 				
-				
-				Map<String, Boolean> map = new HashMap<String, Boolean>();
-				map.put(entry.getValue(), testCaseWithStatus.getPassed());
+				Map<String, String> map = new HashMap<String, String>();
+				map.put(entry.getValue(), testCaseWithStatus.getError());
 				testCaseResultMap.put(entry.getKey(), map);
+
 			}
 						
 	}
-	
-		return testCaseResultMap;
+        return testCaseResultMap;	
 	}
 
 	private static void createTests(ZephyrConfigModel zephyrData, JSONObject bulkIssues,
-			Map<Long, Map<String, Boolean>> testCaseResultMap, List<TestCaseResultModel> testCases) {
+			List<TestCaseResultModel> testCases) {
 		String createURL = URL_CREATE_TESTS.replace("{SERVER}", zephyrData.getRestClient().getUrl());
 		HttpPost httpPost = new HttpPost(createURL);
 		httpPost.addHeader("Content-Type", "application/json");
@@ -150,36 +157,15 @@ public class TestCaseUtil implements RestBase {
 			e1.printStackTrace();
 		}
 		
-		int statusCode1 = issueCreateResponse.getStatusLine().getStatusCode();
 
-		if (statusCode1 >= 200 && statusCode1 < 300) {
-			
-//			Map<String, Map<Long, String>> searchedTestsAfterCreation = searchIssues(zephyrData);
-//			
-//			for (Iterator<TestCaseResultModel> iterator = testCases.iterator(); iterator.hasNext();) {
-//				TestCaseResultModel testCaseWithStatus = (TestCaseResultModel) iterator.next();
-//				
-//				if (searchedTestsAfterCreation.containsKey(testCaseWithStatus.getTestCaseName())) {
-//					
-//					Map<Long, String> tempTestIdTestKeyMap = searchedTestsAfterCreation.get(testCaseWithStatus.getTestCaseName());
-//					Set<Entry<Long, String>> entrySet = tempTestIdTestKeyMap.entrySet();
-//					Entry<Long, String> entry = entrySet.iterator().next();
-//					
-//					
-//					Map<String, Boolean> map = new HashMap<String, Boolean>();
-//					map.put(entry.getValue(), testCaseWithStatus.getPassed());
-//					testCaseResultMap.put(entry.getKey(), map);
-//				}
-//							
-//		}
-		}
-		
+		int statusCode1 = issueCreateResponse.getStatusLine().getStatusCode();
 		if (issueCreateResponse != null)
 			try {
 				issueCreateResponse.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+
 	}
 	
 	public static Map<Long, String> getAllCyclesByVersionId(ZephyrConfigModel zephyrData) {
@@ -495,46 +481,67 @@ else {
 		return issueKeyExecutionIdMap;
 	}
 	
-	public static void executeTests(ZephyrConfigModel zephyrData, List<Long> passList, List<Long> failList) {
+	public static void executeTests(ZephyrConfigModel zephyrData, List<Long> passList, Map<Long,String> failMap) {
         CloseableHttpResponse response = null;
 		try {
 			String bulkExecuteTestsURL = URL_EXECUTE_TEST.replace("{SERVER}", zephyrData.getRestClient().getUrl());
-			
-			
-			if (failList.size() > 0) {
+						
+			if (failMap.size() > 0) {
 				JSONArray failedTests = new JSONArray();
 				JSONObject failObj = new JSONObject();
 				
-				for (long failedTest: failList) {
-					failedTests.put(failedTest);
-				}
+                Iterator it = failMap.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry pair = (Map.Entry)it.next();
+                    failedTests.put(pair.getKey());
+                }
+                logger.printf("failedTests = %s%n",failedTests.toString());
 				failObj.put("executions", failedTests);
 				failObj.put("status", 2);
 				StringEntity failEntity = new StringEntity(failObj.toString());
 				HttpPut bulkUpdateFailedTests = new HttpPut(bulkExecuteTestsURL);
-				bulkUpdateFailedTests.setHeader("Content-Type", "application/json");
+                bulkUpdateFailedTests.setHeader("Content-Type", "application/json");
 				bulkUpdateFailedTests.setEntity(failEntity);
 				response = zephyrData.getRestClient().getHttpclient().execute(bulkUpdateFailedTests, zephyrData.getRestClient().getContext());
+ 				logger.printf("bulk update response = %s%n",String.valueOf(response.getEntity()));
+                
+                it = failMap.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry pair = (Map.Entry)it.next();
+                    logger.printf("id/error pair = %d,%s%n",pair.getKey(),pair.getValue());
+                    String updateExecutionURL = URL_UPDATE_EXECUTION.replace("{SERVER}", zephyrData.getRestClient().getUrl());
+                    updateExecutionURL = updateExecutionURL.replace("{ID}", String.valueOf(pair.getKey()));
+                    logger.printf("updateExecutionURL=%s%n",updateExecutionURL);
+                    JSONObject commentObj = new JSONObject();
+                    commentObj.put("comment",pair.getValue());
+                    StringEntity commentEntity = new StringEntity(commentObj.toString());
+                    HttpPut updateExecution = new HttpPut(updateExecutionURL);
+                    updateExecution.setHeader("Content-Type", "application/json");
+                    updateExecution.setEntity(commentEntity);
+                    response = zephyrData.getRestClient().getHttpclient().execute(updateExecution, zephyrData.getRestClient().getContext());
+                    logger.printf("single update response header = %s%n",String.valueOf(response));
+                    String entity = EntityUtils.toString(response.getEntity());
+                    EntityUtils.consume(response.getEntity());
+                }
 			}
-			
 		
 			if (passList.size() > 0) {
 				if(response != null) {
 					response.close();
 				}
 			
-			JSONArray passedTests = new JSONArray();
-			JSONObject passObj = new JSONObject();
-			for (long passedTest: passList) {
-				passedTests.put(passedTest);
-			}
-			passObj.put("executions", passedTests);
-			passObj.put("status", 1);
-			StringEntity passEntity = new StringEntity(passObj.toString());
-			HttpPut bulkUpdatePassedTests = new HttpPut(bulkExecuteTestsURL);
-			bulkUpdatePassedTests.setHeader("Content-Type", "application/json");
-			bulkUpdatePassedTests.setEntity(passEntity);
-			response = zephyrData.getRestClient().getHttpclient().execute(bulkUpdatePassedTests, zephyrData.getRestClient().getContext());
+                JSONArray passedTests = new JSONArray();
+                JSONObject passObj = new JSONObject();
+                for (long passedTest: passList) {
+                    passedTests.put(passedTest);
+                }
+                passObj.put("executions", passedTests);
+                passObj.put("status", 1);
+                StringEntity passEntity = new StringEntity(passObj.toString());
+                HttpPut bulkUpdatePassedTests = new HttpPut(bulkExecuteTestsURL);
+                bulkUpdatePassedTests.setHeader("Content-Type", "application/json");
+                bulkUpdatePassedTests.setEntity(passEntity);
+                response = zephyrData.getRestClient().getHttpclient().execute(bulkUpdatePassedTests, zephyrData.getRestClient().getContext());
 			}
 
 
@@ -575,10 +582,12 @@ else {
 			}
 		}
 	}
-	public static void processTestCaseDetails(ZephyrConfigModel zephyrData) {
-		Map<Long, Map<String, Boolean>> testCaseDetails = getTestCaseDetails(zephyrData);
-		
-		
+	public static void processTestCaseDetails(ZephyrConfigModel zephyrData, BuildListener listener) {
+                
+        logger = listener.getLogger();
+        logger.printf("%nprocessing test case details...%n");
+		Map<Long, Map<String, String>> testCaseDetails  = getTestCaseDetails(zephyrData);
+	
 		JSONObject jsonObject = new JSONObject();
 		jsonObject.put("versionId", zephyrData.getVersionId());
 		jsonObject.put("projectId", zephyrData.getZephyrProjectId());
@@ -616,11 +625,11 @@ else {
 		JSONArray jArr = new JSONArray();
 		
 		JSONObject createExecutionsJObj = new JSONObject();
-		Set<Entry<Long, Map<String, Boolean>>> entrySet = testCaseDetails.entrySet();
-		for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
-			Entry<Long, Map<String, Boolean>> entry = iterator
+		Set<Entry<Long, Map<String, String>>> entrySet = testCaseDetails.entrySet();
+		for (Iterator<Entry<Long, Map<String, String>>> iterator = entrySet.iterator(); iterator.hasNext();) {
+			Entry<Long, Map<String, String>> entry = iterator
 					.next();
-			Map<String, Boolean> value = entry.getValue();
+			Map<String, String> value = entry.getValue();
 			Set<String> keySet = value.keySet();
 			for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
 				String issueKey = iterator2.next();
@@ -646,11 +655,11 @@ else {
 			Map<String, Long> issueKeyExecutionIdMap = fetchExecutionIds(zephyrData, createExecutionsJObj);
 			
 			List<Long> passList = new ArrayList<Long>();
-			List<Long> failList = new ArrayList<Long>();
-			for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
-				Entry<Long, Map<String, Boolean>> entry = iterator
+			Map<Long,String> failMap = new HashMap<Long,String>();
+			for (Iterator<Entry<Long, Map<String, String>>> iterator = entrySet.iterator(); iterator.hasNext();) {
+				Entry<Long, Map<String, String>> entry = iterator
 						.next();
-				Map<String, Boolean> value = entry.getValue();
+				Map<String, String> value = entry.getValue();
 				Set<String> keySet = value.keySet();
 				for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
 					String issueKey = iterator2.next();
@@ -663,16 +672,20 @@ else {
 					
 //				executeTests(zephyrData, executionId, value.get(issueKey));
 					
-					boolean pass = value.get(issueKey);
+					String error = value.get(issueKey);
+                    logger.printf("error = %s%n", error);
 					Long executionId = issueKeyExecutionIdMap.get(issueKey);
-					if(pass) {
+                    
+					if (error.isEmpty()) {
 						passList.add(executionId );
 					} else {
-						failList.add(executionId);
+						failMap.put(executionId,error);
 					}
 				}
 			}
-			executeTests(zephyrData, passList, failList);
+            logger.printf("failMap = %s%n", failMap.toString());
+
+			executeTests(zephyrData, passList, failMap);
 		} else {
 			
 			int totalExecutionsCount = 0;
@@ -686,11 +699,11 @@ else {
 			}
 			
 			List<String> passList = new ArrayList<String>();
-			List<String> failList = new ArrayList<String>();
-			for (Iterator<Entry<Long, Map<String, Boolean>>> iterator = entrySet.iterator(); iterator.hasNext();) {
-				Entry<Long, Map<String, Boolean>> entry = iterator
+			Map<String,String> failMap = new HashMap<String,String>();
+			for (Iterator<Entry<Long, Map<String, String>>> iterator = entrySet.iterator(); iterator.hasNext();) {
+				Entry<Long, Map<String, String>> entry = iterator
 						.next();
-				Map<String, Boolean> value = entry.getValue();
+				Map<String, String> value = entry.getValue();
 				Set<String> keySet = value.keySet();
 				for (Iterator<String> iterator2 = keySet.iterator(); iterator2.hasNext();) {
 					String issueKey = iterator2.next();
@@ -703,16 +716,18 @@ else {
 					
 //				executeTests(zephyrData, executionId, value.get(issueKey));
 					
-					boolean pass = value.get(issueKey);
+					String error = value.get(issueKey);
 					String executionId = issueKeyExecutionIdMap.get(issueKey);
-					if(pass) {
+                    
+					if(error.isEmpty()) {
 						passList.add(executionId );
 					} else {
-						failList.add(executionId);
+						failMap.put(executionId,error);
 					}
 				}
 			}
-			executeTestsZFJC(zephyrData, passList, failList);
+            
+			//executeTestsZFJC(zephyrData, passList, failMap);
 		}
 	}
 	
@@ -1078,117 +1093,117 @@ else {
 
 
 
-	private static void executeTestsZFJC(ZephyrConfigModel zephyrData, List<String> passList, List<String> failList) {
-
-		CloseableHttpResponse response = null;
-		try {
-
-			RestClient restClient = zephyrData.getRestClient();
-			String bulkExecuteTestsURL = URL_ZFJC_EXECUTE_TEST.replace(ZFJC_SERVER, restClient.getZephyrCloudURL());
-			String jwtHeaderValue = ServerInfo.generateJWT(restClient, bulkExecuteTestsURL, HTTP_REQUEST_METHOD_POST);
-
-
-			
-			int failListSize = failList.size();
-			if (failListSize > 0) {
-				
-				int bulkOperationSetCount = failListSize / MAX_BULK_OPERATION_COUNT;
-				bulkOperationSetCount += (failListSize % MAX_BULK_OPERATION_COUNT) > 0 ? 1 : 0;
-				
-				for (int i = 0; i < bulkOperationSetCount; i++) {
-					
-					List<String> tempFailList = failList.subList((i*MAX_BULK_OPERATION_COUNT), ((bulkOperationSetCount - i) > 1) ? ((i*MAX_BULK_OPERATION_COUNT) + MAX_BULK_OPERATION_COUNT) : failList.size());
-					JSONArray failedTests = new JSONArray();
-					JSONObject failObj = new JSONObject();
-					
-					for (String failedTest: tempFailList) {
-						failedTests.put(failedTest);
-					}
-					failObj.put("executions", failedTests);
-					failObj.put("status", 2);
-					failObj.put("stepStatus", -1);
-					failObj.put("testStepStatusChangeFlag", true);
-					failObj.put("clearDefectMappingFlag", false);
-					StringEntity failEntity = new StringEntity(failObj.toString());
-					
-					HttpPost bulkUpdateFailedTests = new HttpPost(bulkExecuteTestsURL);
-					bulkUpdateFailedTests.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
-					bulkUpdateFailedTests.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
-					bulkUpdateFailedTests.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
-					bulkUpdateFailedTests.setEntity(failEntity);
-					
-					if(response != null) {
-						response.close();
-					}
-					response = restClient.getHttpclient().execute(bulkUpdateFailedTests);
-				}
-			}
-			
-		
-			int passListSize = passList.size();
-			if (passListSize > 0) {
-				
-				int bulkOperationSetCount = passListSize / MAX_BULK_OPERATION_COUNT;
-				bulkOperationSetCount += (passListSize % MAX_BULK_OPERATION_COUNT) > 0 ? 1 : 0;
-				
-				for (int i = 0; i < bulkOperationSetCount; i++) {
-					
-					List<String> tempPassList = passList.subList((i*MAX_BULK_OPERATION_COUNT), ((bulkOperationSetCount - i) > 1) ? ((i*MAX_BULK_OPERATION_COUNT) + MAX_BULK_OPERATION_COUNT) : passList.size());
-
-					JSONArray passedTests = new JSONArray();
-					JSONObject passObj = new JSONObject();
-					for (String passedTest: tempPassList) {
-						passedTests.put(passedTest);
-					}
-					passObj.put("executions", passedTests);
-					passObj.put("status", 1);
-					passObj.put("stepStatus", -1);
-					passObj.put("testStepStatusChangeFlag", true);
-					passObj.put("clearDefectMappingFlag", false);
-					StringEntity passEntity = new StringEntity(passObj.toString());
-					
-					HttpPost bulkUpdatePassedTests = new HttpPost(bulkExecuteTestsURL);
-					bulkUpdatePassedTests.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
-					bulkUpdatePassedTests.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
-					bulkUpdatePassedTests.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
-					bulkUpdatePassedTests.setEntity(passEntity);
-					
-					if(response != null) {
-						response.close();
-					}
-					response = restClient.getHttpclient().execute(bulkUpdatePassedTests);
-				}
-			}
-		} catch (ClientProtocolException e) {
-			e.printStackTrace();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-
-		int statusCode = response.getStatusLine().getStatusCode();
-
-		if (statusCode >= 200 && statusCode < 300) {
-			HttpEntity entity = response.getEntity();
-			String string = null;
-			try {
-				string = EntityUtils.toString(entity);
-			} catch (ParseException e) {
-				e.printStackTrace();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-
-			
-		} else {
-			try {
-				throw new ClientProtocolException("Unexpected response status: "
-						+ statusCode);
-			} catch (ClientProtocolException e) {
-				e.printStackTrace();
-			}
-		}
-	
-	
-	}
+	//private static void executeTestsZFJC(ZephyrConfigModel zephyrData, List<String> passList, Map<Long,String> failMap) {
+	//
+	//	CloseableHttpResponse response = null;
+	//	try {
+	//
+	//		RestClient restClient = zephyrData.getRestClient();
+	//		String bulkExecuteTestsURL = URL_ZFJC_EXECUTE_TEST.replace(ZFJC_SERVER, restClient.getZephyrCloudURL());
+	//		String jwtHeaderValue = ServerInfo.generateJWT(restClient, bulkExecuteTestsURL, HTTP_REQUEST_METHOD_POST);
+	//
+	//
+	//		
+	//		int failListSize = failList.size();
+	//		if (failListSize > 0) {
+	//			
+	//			int bulkOperationSetCount = failListSize / MAX_BULK_OPERATION_COUNT;
+	//			bulkOperationSetCount += (failListSize % MAX_BULK_OPERATION_COUNT) > 0 ? 1 : 0;
+	//			
+	//			for (int i = 0; i < bulkOperationSetCount; i++) {
+	//				
+	//				List<String> tempFailList = failList.subList((i*MAX_BULK_OPERATION_COUNT), ((bulkOperationSetCount - i) > 1) ? ((i*MAX_BULK_OPERATION_COUNT) + MAX_BULK_OPERATION_COUNT) : failList.size());
+	//				JSONArray failedTests = new JSONArray();
+	//				JSONObject failObj = new JSONObject();
+	//				
+	//				for (String failedTest: tempFailList) {
+	//					failedTests.put(failedTest);
+	//				}
+	//				failObj.put("executions", failedTests);
+	//				failObj.put("status", 2);
+	//				failObj.put("stepStatus", -1);
+	//				failObj.put("testStepStatusChangeFlag", true);
+	//				failObj.put("clearDefectMappingFlag", false);
+	//				StringEntity failEntity = new StringEntity(failObj.toString());
+	//				
+	//				HttpPost bulkUpdateFailedTests = new HttpPost(bulkExecuteTestsURL);
+	//				bulkUpdateFailedTests.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+	//				bulkUpdateFailedTests.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
+	//				bulkUpdateFailedTests.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
+	//				bulkUpdateFailedTests.setEntity(failEntity);
+	//				
+	//				if(response != null) {
+	//					response.close();
+	//				}
+	//				response = restClient.getHttpclient().execute(bulkUpdateFailedTests);
+	//			}
+	//		}
+	//		
+	//	
+	//		int passListSize = passList.size();
+	//		if (passListSize > 0) {
+	//			
+	//			int bulkOperationSetCount = passListSize / MAX_BULK_OPERATION_COUNT;
+	//			bulkOperationSetCount += (passListSize % MAX_BULK_OPERATION_COUNT) > 0 ? 1 : 0;
+	//			
+	//			for (int i = 0; i < bulkOperationSetCount; i++) {
+	//				
+	//				List<String> tempPassList = passList.subList((i*MAX_BULK_OPERATION_COUNT), ((bulkOperationSetCount - i) > 1) ? ((i*MAX_BULK_OPERATION_COUNT) + MAX_BULK_OPERATION_COUNT) : passList.size());
+	//
+	//				JSONArray passedTests = new JSONArray();
+	//				JSONObject passObj = new JSONObject();
+	//				for (String passedTest: tempPassList) {
+	//					passedTests.put(passedTest);
+	//				}
+	//				passObj.put("executions", passedTests);
+	//				passObj.put("status", 1);
+	//				passObj.put("stepStatus", -1);
+	//				passObj.put("testStepStatusChangeFlag", true);
+	//				passObj.put("clearDefectMappingFlag", false);
+	//				StringEntity passEntity = new StringEntity(passObj.toString());
+	//				
+	//				HttpPost bulkUpdatePassedTests = new HttpPost(bulkExecuteTestsURL);
+	//				bulkUpdatePassedTests.addHeader(HEADER_CONTENT_TYPE, CONTENT_TYPE_JSON);
+	//				bulkUpdatePassedTests.addHeader(HEADER_AUTHORIZATION, jwtHeaderValue);
+	//				bulkUpdatePassedTests.addHeader(HEADER_ZFJC_ACCESS_KEY, restClient.getAccessKey());
+	//				bulkUpdatePassedTests.setEntity(passEntity);
+	//				
+	//				if(response != null) {
+	//					response.close();
+	//				}
+	//				response = restClient.getHttpclient().execute(bulkUpdatePassedTests);
+	//			}
+	//		}
+	//	} catch (ClientProtocolException e) {
+	//		e.printStackTrace();
+	//	} catch (IOException e) {
+	//		e.printStackTrace();
+	//	}
+	//
+	//	int statusCode = response.getStatusLine().getStatusCode();
+	//
+	//	if (statusCode >= 200 && statusCode < 300) {
+	//		HttpEntity entity = response.getEntity();
+	//		String string = null;
+	//		try {
+	//			string = EntityUtils.toString(entity);
+	//		} catch (ParseException e) {
+	//			e.printStackTrace();
+	//		} catch (IOException e) {
+	//			e.printStackTrace();
+	//		}
+	//
+	//		
+	//	} else {
+	//		try {
+	//			throw new ClientProtocolException("Unexpected response status: "
+	//					+ statusCode);
+	//		} catch (ClientProtocolException e) {
+	//			e.printStackTrace();
+	//		}
+	//	}
+	//
+	//
+	//}
 
 }

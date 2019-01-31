@@ -98,7 +98,7 @@ public class ZfjReporter extends Notifier {
     			return false;
         	}
         	
-			TestCaseUtil.processTestCaseDetails(zephyrConfig);
+			TestCaseUtil.processTestCaseDetails(zephyrConfig, listener);
 
             zephyrConfig.getRestClient().destroy();
         logger.printf("%s Done.%n", pInfo);
@@ -110,6 +110,7 @@ public class ZfjReporter extends Notifier {
 		
 		boolean status = true;
 		Map<String, Boolean> zephyrTestCaseMap = new HashMap<String, Boolean>();
+		Map<String, String> zephyrTestCaseErrorMap = new HashMap<String, String>();
 		
 		TestResultAction testResultAction = build.getAction(TestResultAction.class);
 		Collection<SuiteResult> suites = null;
@@ -133,6 +134,14 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		for (CaseResult caseResult : cases) {
 			boolean isPassed = caseResult.isPassed();
 			String name = caseResult.getFullName();
+			if (!isPassed){
+				String error = caseResult.getErrorDetails();
+				logger.printf("Error from caseResult = %s...%n", error);
+				zephyrTestCaseErrorMap.put(name,error);
+			}
+			else{
+				zephyrTestCaseErrorMap.put(name,"");
+			}
 			if (!zephyrTestCaseMap.containsKey(name)) {
 				zephyrTestCaseMap.put(name, isPassed);
 			}
@@ -148,6 +157,7 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		for (Iterator<String> iterator = keySet.iterator(); iterator.hasNext();) {
 			String testCaseName = iterator.next();
 			Boolean isPassed = zephyrTestCaseMap.get(testCaseName);
+			String error = zephyrTestCaseErrorMap.get(testCaseName);
 			
 			
 			JSONObject isssueType = new JSONObject();
@@ -169,6 +179,7 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 			caseWithStatus.setPassed(isPassed);
 			caseWithStatus.setTestCase(issue.toString());
 			caseWithStatus.setTestCaseName(testCaseName);
+			caseWithStatus.setError(error);
 			testcases.add(caseWithStatus);
 		}
 		
