@@ -12,6 +12,11 @@ import hudson.tasks.Notifier;
 import hudson.tasks.junit.SuiteResult;
 import hudson.tasks.junit.TestResultAction;
 import hudson.tasks.junit.CaseResult;
+import hudson.FilePath;
+
+import java.io.File;
+import java.io.BufferedReader;
+import java.io.FileReader;
 
 import java.io.PrintStream;
 import java.util.ArrayList;
@@ -79,12 +84,13 @@ public class ZfjReporter extends Notifier {
         logger = listener.getLogger();
         logger.printf("%s Examining test results...%n", pInfo);
         logger.printf(String.format("Build result is %s%n", build.getResult().toString()));
-        
   
 		if (!validateBuildConfig()) {
 			logger.println("Cannot Proceed. Please verify the job configuration");
 			return false;
 		}
+		readArtyLinkFile(build);
+		
 
 		int number = build.getRootBuild().getNumber();
 		ZephyrConfigModel zephyrConfig = initializeZephyrData();
@@ -104,6 +110,23 @@ public class ZfjReporter extends Notifier {
         logger.printf("%s Done.%n", pInfo);
         return true;
     }
+	
+	private String readArtyLinkFile(AbstractBuild build){
+		try{			  
+			//FilePath fp = build.getWorkspace().child("zephyr/demo_out_1.txt");
+			FilePath fp = build.getWorkspace();
+			//logger.printf("file " + fp.getRemote() + " " + fp.exists()+"%n");
+			logger.printf("files: " + fp.list().toString()+"%n");
+			String contents = fp.child("README.md").readToString();
+			logger.printf("README: " + contents+"%n");
+			
+		} catch (Exception e){
+			logger.printf("%s%n",e.getMessage());
+		}
+		
+
+		return "done";  
+	}
 
 	private boolean prepareZephyrTests(final AbstractBuild build,
 			ZephyrConfigModel zephyrConfig) {
@@ -111,8 +134,9 @@ public class ZfjReporter extends Notifier {
 		boolean status = true;
 		Map<String, Boolean> zephyrTestCaseMap = new HashMap<String, Boolean>();
 		Map<String, String> zephyrTestCaseErrorMap = new HashMap<String, String>();
-		
 		TestResultAction testResultAction = build.getAction(TestResultAction.class);
+		logger.printf("in prepareZephyrTests%n");
+
 		Collection<SuiteResult> suites = null;
 		
 		try {
