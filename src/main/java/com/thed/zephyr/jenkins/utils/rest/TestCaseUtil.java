@@ -480,8 +480,33 @@ else {
 	
 		return issueKeyExecutionIdMap;
 	}
+    
+    private static void addExecutionComment(String executionId,String comment,ZephyrConfigModel zephyrData,String logFilePath){
+        CloseableHttpResponse response = null;
+        JSONObject commentObj = new JSONObject();
+        if (logFilePath != null){
+            comment = comment + "log: "+logFilePath;
+        }
+        commentObj.put("comment",comment);
+        
+        String updateExecutionURL = URL_UPDATE_EXECUTION.replace("{SERVER}", zephyrData.getRestClient().getUrl());
+        updateExecutionURL = updateExecutionURL.replace("{ID}", String.valueOf(executionId));
+        logger.printf("updateExecutionURL=%s%n",updateExecutionURL);
+        try {
+            StringEntity commentEntity = new StringEntity(commentObj.toString());
+            HttpPut updateExecution = new HttpPut(updateExecutionURL);
+            updateExecution.setHeader("Content-Type", "application/json");
+            updateExecution.setEntity(commentEntity);
+            response = zephyrData.getRestClient().getHttpclient().execute(updateExecution, zephyrData.getRestClient().getContext());
+            logger.printf("single update response header = %s%n",String.valueOf(response));
+            String entity = EntityUtils.toString(response.getEntity());
+            EntityUtils.consume(response.getEntity());
+        } catch (Exception e) {
+			e.printStackTrace();
+		}
+    }
 	
-	public static void executeTests(ZephyrConfigModel zephyrData, List<Long> passList, Map<Long,String> failMap) {
+	public static void executeTests(ZephyrConfigModel zephyrData, List<Long> passList, Map<Long,String> failMap, String logFilePath) {
         CloseableHttpResponse response = null;
 		try {
 			String bulkExecuteTestsURL = URL_EXECUTE_TEST.replace("{SERVER}", zephyrData.getRestClient().getUrl());
@@ -508,20 +533,9 @@ else {
                 it = failMap.entrySet().iterator();
                 while (it.hasNext()) {
                     Map.Entry pair = (Map.Entry)it.next();
-                    logger.printf("id/error pair = %d,%s%n",pair.getKey(),pair.getValue());
-                    String updateExecutionURL = URL_UPDATE_EXECUTION.replace("{SERVER}", zephyrData.getRestClient().getUrl());
-                    updateExecutionURL = updateExecutionURL.replace("{ID}", String.valueOf(pair.getKey()));
-                    logger.printf("updateExecutionURL=%s%n",updateExecutionURL);
-                    JSONObject commentObj = new JSONObject();
-                    commentObj.put("comment",pair.getValue());
-                    StringEntity commentEntity = new StringEntity(commentObj.toString());
-                    HttpPut updateExecution = new HttpPut(updateExecutionURL);
-                    updateExecution.setHeader("Content-Type", "application/json");
-                    updateExecution.setEntity(commentEntity);
-                    response = zephyrData.getRestClient().getHttpclient().execute(updateExecution, zephyrData.getRestClient().getContext());
-                    logger.printf("single update response header = %s%n",String.valueOf(response));
-                    String entity = EntityUtils.toString(response.getEntity());
-                    EntityUtils.consume(response.getEntity());
+                    //logger.printf("id/error pair = %d,%s%n",pair.getKey(),pair.getValue());
+                    String comment = pair.getValue().toString()+"\n";
+                    addExecutionComment(pair.getKey().toString(),comment,zephyrData,logFilePath);
                 }
 			}
 		
@@ -534,6 +548,7 @@ else {
                 JSONObject passObj = new JSONObject();
                 for (long passedTest: passList) {
                     passedTests.put(passedTest);
+                    addExecutionComment(new Long(passedTest).toString(),"",zephyrData,logFilePath);
                 }
                 passObj.put("executions", passedTests);
                 passObj.put("status", 1);
@@ -582,7 +597,7 @@ else {
 			}
 		}
 	}
-	public static void processTestCaseDetails(ZephyrConfigModel zephyrData, BuildListener listener) {
+	public static void processTestCaseDetails(ZephyrConfigModel zephyrData, BuildListener listener, String logFilePath) {
                 
         logger = listener.getLogger();
         logger.printf("%nprocessing test case details...%n");
@@ -685,7 +700,7 @@ else {
 			}
             logger.printf("failMap = %s%n", failMap.toString());
 
-			executeTests(zephyrData, passList, failMap);
+			executeTests(zephyrData, passList, failMap, logFilePath);
 		} else {
 			
 			int totalExecutionsCount = 0;

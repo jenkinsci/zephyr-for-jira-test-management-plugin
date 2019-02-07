@@ -11,6 +11,7 @@ public class ZephyrConfigModel {
 	private Long versionId;
 	private Long cycleId;
 	private String cyclePrefix;
+	private String cycleSuffix;
 	private long testIssueTypeId;
 	private String cycleName;
 	private String cycleDuration;
@@ -31,9 +32,16 @@ public class ZephyrConfigModel {
 	public String getCyclePrefix() {
 		return cyclePrefix;
 	}
-
+	public String getCycleSuffix() {
+		return cycleSuffix;
+	}
+	
 	public void setCyclePrefix(String cyclePrefix) {
 		this.cyclePrefix = cyclePrefix;
+	}
+	
+	public void setCycleSuffix(String cycleSuffix) {
+		this.cycleSuffix = cycleSuffix;
 	}
 
 	public List<TestCaseResultModel> getTestcases() {

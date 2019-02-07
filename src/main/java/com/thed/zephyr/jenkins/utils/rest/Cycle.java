@@ -40,14 +40,18 @@ public class Cycle implements RestBase {
 		HttpResponse response = null;
 		try {
 			String createCycleURL = URL_CREATE_CYCLES.replace("{SERVER}", zephyrData.getRestClient().getUrl());
-			
-			Date date = new Date();
-			SimpleDateFormat sdf = new SimpleDateFormat("E dd, yyyy hh:mm a");
-			String dateFormatForCycleCreation = sdf.format(date);
 
-			JSONObject jObject = new JSONObject();
-			String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;
-			
+            Date date = new Date();
+            SimpleDateFormat sdf = new SimpleDateFormat("E dd, yyyy hh:mm a");
+            JSONObject jObject = new JSONObject();
+            String dateFormatForCycleCreation = sdf.format(date);
+            String cycleName = zephyrData.getCyclePrefix() + dateFormatForCycleCreation;
+            
+            // if cycle suffix is a build parameter, use it here
+            if (zephyrData.getCycleSuffix() != null) {
+                cycleName = zephyrData.getCyclePrefix() + zephyrData.getCycleSuffix();
+            }
+	
 			SimpleDateFormat sdf1 = new SimpleDateFormat("d/MMM/yy");
 			String startDate = sdf1.format(date);
 			

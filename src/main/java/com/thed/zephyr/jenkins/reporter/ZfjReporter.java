@@ -50,9 +50,15 @@ public class ZfjReporter extends Notifier {
 	private String serverAddress;
 	private String projectKey;
 	private String versionKey;
-	private String cycleKey;;
+	private String cycleKey;
+	private String cycleVariableKey = "CYCLE_PREFIX";
+	private String timestampVariableKey = "TIMESTAMP";
+	private String versionVariableKey = "VERSION";
 	private String cyclePrefix;
+	private String cycleSuffix;
 	private String cycleDuration;
+	
+	private String artifactoryPath;
 
 	
     private static final String PluginName = new String("[ZapiTestResultReporter]");
@@ -89,7 +95,7 @@ public class ZfjReporter extends Notifier {
 			logger.println("Cannot Proceed. Please verify the job configuration");
 			return false;
 		}
-		readArtyLinkFile(build);
+		readJobParameters(build);
 		
 
 		int number = build.getRootBuild().getNumber();
@@ -104,28 +110,40 @@ public class ZfjReporter extends Notifier {
     			return false;
         	}
         	
-			TestCaseUtil.processTestCaseDetails(zephyrConfig, listener);
+			TestCaseUtil.processTestCaseDetails(zephyrConfig, listener, artifactoryPath);
 
             zephyrConfig.getRestClient().destroy();
         logger.printf("%s Done.%n", pInfo);
         return true;
     }
 	
-	private String readArtyLinkFile(AbstractBuild build){
-		try{			  
-			//FilePath fp = build.getWorkspace().child("zephyr/demo_out_1.txt");
-			FilePath fp = build.getWorkspace();
-			//logger.printf("file " + fp.getRemote() + " " + fp.exists()+"%n");
-			logger.printf("files: " + fp.list().toString()+"%n");
-			String contents = fp.child("README.md").readToString();
-			logger.printf("README: " + contents+"%n");
-			
-		} catch (Exception e){
-			logger.printf("%s%n",e.getMessage());
+	private void readJobParameters(AbstractBuild build){
+		// get cycle prefix from build parameter rather than zapi config section of job
+		Map<String,String> variables = build.getBuildVariables();
+		logger.printf("build variables = %s%n",variables.toString());
+		Map.Entry<String,String> entry = variables.entrySet().iterator().next();
+		String key = cycleVariableKey;
+		String cyclePrefixTemp = variables.get(key);
+		logger.printf("buildcyclePrefixTemp = %s%n",cyclePrefixTemp);
+		if (cyclePrefixTemp != null){
+			cyclePrefix = cyclePrefixTemp;						
 		}
-		
-
-		return "done";  
+		key = timestampVariableKey;
+		String cycleSuffixTemp = variables.get(key);
+		if (cycleSuffixTemp != null){
+			cycleSuffix = cycleSuffixTemp;						
+		}
+		//  read path to log file
+		FilePath fp = null;
+		try {			  
+			fp = build.getWorkspace();
+			logger.printf("jenkins workspace files: " + fp.list().toString()+"%n");
+			// this may not exist but we will check later
+			artifactoryPath = fp.child("artifactory_path.txt").readToString();
+		} 	catch (Exception e){
+			logger.printf("%s%n",e.getMessage());			
+		}
+		return;
 	}
 
 	private boolean prepareZephyrTests(final AbstractBuild build,
@@ -235,6 +253,7 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 	}
 
 	private void determineCyclePrefix(ZephyrConfigModel zephyrConfig) {
+		logger.printf("in determineCyclePrefix, it is %s%n",cyclePrefix);
 		if (StringUtils.isNotBlank(cyclePrefix)) {
 			zephyrConfig.setCyclePrefix(cyclePrefix+ "_");
 		} else {
@@ -242,6 +261,13 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		}
 	}
 
+	private void determineCycleSuffix(ZephyrConfigModel zephyrConfig) {
+		logger.printf("in determineCycleSuffix, it is %s%n",cycleSuffix);
+		if (StringUtils.isNotBlank(cycleSuffix)) {
+			zephyrConfig.setCycleSuffix(cycleSuffix);
+		} 
+	}
+	
 	private ZephyrConfigModel initializeZephyrData() {
 		ZephyrConfigModel zephyrConfig = new ZephyrConfigModel();
 		
@@ -253,6 +279,7 @@ for (Iterator<SuiteResult> iterator = suites.iterator(); iterator.hasNext();) {
 		determineVersionID(zephyrConfig);
 		determineCycleID(zephyrConfig);
 		determineCyclePrefix(zephyrConfig);
+		determineCycleSuffix(zephyrConfig);
         determineTestIssueTypeId(zephyrConfig);
 
 		
